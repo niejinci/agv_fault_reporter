@@ -146,6 +146,7 @@ def index():
         'search_responsible': request.args.get('search_responsible', '').strip(),
         'search_vehicle': request.args.get('search_vehicle', '').strip(),
         'search_status': request.args.get('search_status', '').strip(),
+        'search_category': request.args.get('search_category', '').strip(), # 新增
         'search_start_date': request.args.get('search_start_date', '').strip(),
         'search_end_date': request.args.get('search_end_date', '').strip()
     }
@@ -165,6 +166,9 @@ def index():
     if search_params['search_status']:
         where_clauses.append("status = ?")
         params.append(search_params['search_status'])
+    if search_params['search_category']: # 新增
+        where_clauses.append("category = ?")
+        params.append(search_params['search_category'])
     if search_params['search_start_date']:
         where_clauses.append("fault_time >= ?")
         params.append(datetime.strptime(search_params['search_start_date'], '%Y-%m-%d'))
@@ -180,7 +184,7 @@ def index():
     allowed_per_page = [10, 20, 50]
     
     # 2. 获取 per_page 参数，验证并设置默认值
-    per_page = request.args.get('per_page', 5, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
     if per_page not in allowed_per_page:
         per_page = 20 # 如果传入了无效值，强制设为默认值
 
