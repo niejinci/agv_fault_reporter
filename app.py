@@ -193,6 +193,11 @@ def index():
 
     # 4. 查询总数 (必须使用同样的 WHERE 子句)
     total_count_query = f"SELECT COUNT(id) FROM faults WHERE {where_sql}"
+    if app.config.get('DEBUG_SQL'):
+        print("\n--- DEBUG SQL (Total Count) ---")
+        print("Query:", total_count_query)
+        print("Params:", params)
+        print("---------------------------------\n")
     total_count = db.execute(total_count_query, params).fetchone()[0]
 
     # 5. 使用动态的 per_page 计算总页数
@@ -267,18 +272,23 @@ def parse_fault():
 
     try:
         db = get_db()
-        db.execute(
-            'INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (
-                parsed_data['reporter_name'],
-                parsed_data['fault_time'],
-                parsed_data['vehicle_id'],
-                parsed_data['category'],
-                parsed_data['description'],
-                parsed_data['solution'],
-                parsed_data['responsible_person']
-            )
+        insert_query = f"INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        params = (
+            parsed_data['reporter_name'],
+            parsed_data['fault_time'],
+            parsed_data['vehicle_id'],
+            parsed_data['category'],
+            parsed_data['description'],
+            parsed_data['solution'],
+            parsed_data['responsible_person']
         )
+        if app.config.get('DEBUG_SQL'):
+            print("\n--- DEBUG SQL (Insert Parsed Data) ---")
+            print("Query:", insert_query)
+            print("Params:", params)
+            print("---------------------------------\n")
+
+        db.execute(insert_query, params)
         db.commit()
         flash('通过快速解析成功提交故障！', 'success')
     except Exception as e:
@@ -296,7 +306,14 @@ def edit_fault(fault_id):
     if request.method == 'POST':
         status = request.form['status']
         resolution_log = request.form['resolution_log']
-        db.execute('UPDATE faults SET status = ?, resolution_log = ? WHERE id = ?', (status, resolution_log, fault_id))
+        update_query = f"UPDATE faults SET status = ?, resolution_log = ? WHERE id = ?"
+        params = (status, resolution_log, fault_id)
+        db.execute(update_query, params)
+        if app.config.get('DEBUG_SQL'):
+            print("\n--- DEBUG SQL (Edit Fault) ---")
+            print("Query:", update_query)
+            print("Params:", params)
+            print("---------------------------------\n")
         db.commit()
         flash('记录已更新！', 'success')
         return redirect(url_for('index'))
@@ -347,6 +364,12 @@ def statistics():
     else:
         query += f" GROUP BY {group_by} ORDER BY count DESC"    # 按数量降序排序
 
+    if app.config.get('DEBUG_SQL'):
+        print("\n--- DEBUG SQL (statistics) ---")
+        print("Query:", query)
+        print("Params:", params)
+        print("---------------------------------\n")
+
     cursor = db.execute(query, params)
     stats = cursor.fetchall()
 
@@ -384,6 +407,11 @@ def download():
         query += " AND fault_time <= ?"
         params.append(end_date)
     query += " ORDER BY fault_time DESC"
+    if app.config.get('DEBUG_SQL'):
+        print("\n--- DEBUG SQL (Download Data) ---")
+        print("Query:", query)
+        print("Params:", params)
+        print("---------------------------------\n")
     faults_to_download = db.execute(query, params).fetchall()
     output = io.StringIO()
     writer = csv.writer(output)
