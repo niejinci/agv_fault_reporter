@@ -88,6 +88,12 @@
                     <option value="{{ status }}" {% if status == search_params.search_status %}selected{% endif %}>{{ status }}</option>
                     {% endfor %}
                 </select>
+                <select name="search_category">
+                    <option value="">所有类别</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if cat == search_params.search_category %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
                 <div class="date-range-group">
                     <input type="date" name="search_start_date" value="{{ search_params.search_start_date or '' }}" title="开始日期">
                     <span class="date-separator">-</span>
@@ -98,7 +104,7 @@
             <div class="form-actions">
                 <button type="submit">搜索</button>
                 <a href="{{ url_for('index') }}" class="button-clear">清空条件</a>
-            
+
                 <!-- 将 per_page 选择器移到这里 -->
                 <div class="per-page-selector">
                     <label for="per_page_select">每页显示:</label>
