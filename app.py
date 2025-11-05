@@ -182,7 +182,7 @@ def index():
     # --- 分页逻辑开始 ---
     # 1. 定义允许的 per_page 值白名单
     allowed_per_page = [10, 20, 50]
-    
+
     # 2. 获取 per_page 参数，验证并设置默认值
     per_page = request.args.get('per_page', 20, type=int)
     if per_page not in allowed_per_page:
@@ -197,14 +197,14 @@ def index():
 
     # 5. 使用动态的 per_page 计算总页数
     total_pages = math.ceil(total_count / per_page)
-    
+
     # 确保 page 不会超出范围
     if page > total_pages and total_pages > 0:
         page = total_pages
 
     # 6. 计算 offset
     offset = (page - 1) * per_page
-    
+
     # 获取当页数据 (使用同样的 WHERE 子句)
     faults_query = f"SELECT * FROM faults WHERE {where_sql} ORDER BY fault_time DESC LIMIT ? OFFSET ?"
     if app.config.get('DEBUG_SQL'):
@@ -212,15 +212,15 @@ def index():
         print("Query:", faults_query)
         print("Params:", params + [per_page, offset])
         print("---------------------------------\n")
-    
+
     faults = db.execute(faults_query, params + [per_page, offset]).fetchall()
 
     active_tab = 'quick'
-    
+
     # 8. 将 per_page 也传递给模板
     return render_template(
-        'index.html', 
-        faults=faults, 
+        'index.html',
+        faults=faults,
         categories=FAULT_CATEGORIES,
         statuses=FAULT_STATUSES, # 将状态列表也传给前端
         active_tab=active_tab,
@@ -309,14 +309,14 @@ def statistics():
     db = get_db()
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
-    
+
     # 安全加固
     # 1. 定义一个允许用于分组的列名白名单
     allowed_group_by_columns = ['category', 'status', 'vehicle_id', 'reporter_name', 'responsible_person', 'by_date']
-    
+
     # 2. 从请求中获取 group_by 参数，默认为 'category'
     group_by = request.args.get('group_by', 'category')
-    
+
     # 3. 验证参数是否在白名单内，如果不在，则强制使用默认值
     if group_by not in allowed_group_by_columns:
         group_by = 'category'
