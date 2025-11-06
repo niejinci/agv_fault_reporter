@@ -23,7 +23,7 @@ limiter = Limiter(
 
 # --- 全局常量定义 ---
 FAULT_CATEGORIES = ["充电失败", "任务执行失败", "避障异常", "定位丢失", "机械故障", "其他"]
-FAULT_STATUSES = ["待修复", "处理中", "已修复"]
+FAULT_STATUSES = ["未处理", "观察中", "已处理"]
 
 # --- 数据库管理 (无变动) ---
 def get_db():

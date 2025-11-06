@@ -281,6 +281,34 @@ td.preserve-whitespace {
     white-space: nowrap; /* 确保 "每页显示:" 这几个字本身不换行 */
 }
 
+/* --- 状态样式 (新三态) ---
+   为兼容历史数据，也同时覆盖旧状态名称，
+   这样老数据（例如 "待修复"/"处理中"/"已修复"）也能显示新颜色。
+*/
+td.status-未处理,
+td.status-待修复 {
+    background-color: #dc3545; /* bootstrap danger */
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+}
+
+td.status-观察中,
+td.status-处理中 {
+    background-color: #fd7e14; /* bootstrap orange */
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+}
+
+td.status-已处理,
+td.status-已修复 {
+    background-color: #28a745; /* bootstrap success */
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+}
+
 .flash-messages { margin: 12px 0; }
 .flash { padding: 10px; border-radius: 4px; margin-bottom: 6px; }
 .flash-success { background: #e6ffed; border: 1px solid #b7f0c7; color: #0b6b2f; }
