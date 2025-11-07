@@ -316,3 +316,15 @@ td.status-已修复 {
 .flash-success { background: #e6ffed; border: 1px solid #b7f0c7; color: #0b6b2f; }
 .flash-error { background: #ffe6e6; border: 1px solid #f0b7b7; color: #7a1b1b; }
 .flash-warning { background: #fff8e6; border: 1px solid #f0e0b7; color: #6b5a00; }
+
+/* --- 新增：图表容器样式 --- */
+.chart-container {
+    position: relative;
+    height: 50vh;
+    width: 100%;
+}
+
+/* 新增：为相邻的图表容器添加上边距，制造间隔 */
+.chart-container + .chart-container {
+    margin-top: 40px;
+}

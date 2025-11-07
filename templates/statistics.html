@@ -31,7 +31,7 @@
         <a href="{{ url_for('download', start_date=start_date, end_date=end_date) }}">下载当前筛选范围的明细 (.csv)</a>
     </div>
 
-    <!-- 关键修改1：图表画布容器 -->
+    <!-- 统计结果容器 -->
     {% if stats %}
         <h2>统计结果 (按 {% if current_group_by == 'by_date' %}【天】
                         {% elif current_group_by == 'category' %}【错误类别】
@@ -42,11 +42,18 @@
                         {% else %}{{ current_group_by }}{% endif %} 分类)</h2>
 
         <div class="results-container">
-            <!-- 1. 图表容器 -->
+            <!-- 1. 图表容器 (包含一个或两个图表) -->
             <div class="chart-wrapper">
-                <div class="chart-container" style="position: relative; height:50vh; width:100%;">
-                    <canvas id="faultChart"></canvas>
+                <!-- 条形图/折线图 -->
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
                 </div>
+                <!-- 饼图 (仅在非按天统计时显示) -->
+                {% if current_group_by != 'by_date' %}
+                <div class="chart-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+                {% endif %}
             </div>
 
             <!-- 2. 表格容器 -->
@@ -54,7 +61,6 @@
                 <table>
                     <thead>
                         <tr>
-                            <!-- 关键修改2：动态表头 -->
                             <th>{% if current_group_by == 'by_date' %}日期
                                 {% elif current_group_by == 'category' %}错误类别
                                 {% elif current_group_by == 'status' %}解决状态
@@ -68,15 +74,12 @@
                         {% for row in stats %}
                         <tr>
                             <td>{{ row['group_key'] }}</td>
-                            <!-- 关键修改：将数字变成一个动态生成的链接 -->
                             <td>
-                                <!-- 1. 创建一个包含基础筛选条件的字典 -->
+                                <!-- 钻取链接逻辑 (无变化) -->
                                 {% set drilldown_params = {
                                     'search_start_date': start_date,
                                     'search_end_date': end_date
                                 } %}
-
-                                <!-- 2. 根据当前的统计维度，动态添加对应的筛选条件 -->
                                 {% if current_group_by == 'by_date' %}
                                     {% set _ = drilldown_params.update({'search_start_date': row['group_key'], 'search_end_date': row['group_key']}) %}
                                 {% elif current_group_by == 'category' %}
@@ -90,8 +93,6 @@
                                 {% elif current_group_by == 'responsible_person' %}
                                     {% set _ = drilldown_params.update({'search_responsible': row['group_key']}) %}
                                 {% endif %}
-
-                                <!-- 3. 使用构建好的参数字典生成URL -->
                                 <a href="{{ url_for('index', **drilldown_params) }}" title="查看这 {{ row['count'] }} 条记录的明细">
                                     {{ row['count'] }}
                                 </a>
@@ -109,44 +110,68 @@
     <hr>
     <a href="{{ url_for('index') }}">返回首页</a>
 
-    <!-- JavaScript 图表生成脚本 -->
+    <!-- JavaScript 图表生成脚本 (无变化) -->
     <script>
         {% if stats %}
-            // --- 关键修改3：智能图表类型切换 ---
             const currentGroupBy = '{{ current_group_by }}';
-            const chartType = (currentGroupBy === 'by_date') ? 'line' : 'bar'; // 如果是按天统计，则为折线图，否则为柱状图
-
+            const isDailyStats = (currentGroupBy === 'by_date');
             const labels = {{ chart_labels | safe }};
             const data = {{ chart_data | safe }};
-            const ctx = document.getElementById('faultChart').getContext('2d');
 
-            const faultChart = new Chart(ctx, {
-                type: chartType, // 使用动态的图表类型
+            // --- 1. 渲染主图表 (条形图或折线图) ---
+            const mainChartCtx = document.getElementById('mainChart').getContext('2d');
+            new Chart(mainChartCtx, {
+                type: isDailyStats ? 'line' : 'bar',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: '故障次数',
                         data: data,
-                        backgroundColor: (chartType === 'line') ? 'rgba(54, 162, 235, 0.2)' : 'rgba(54, 162, 235, 0.6)',
+                        backgroundColor: isDailyStats ? 'rgba(54, 162, 235, 0.2)' : 'rgba(54, 162, 235, 0.6)',
                         borderColor: 'rgba(54, 162, 235, 1)',
                         borderWidth: 1,
-                        fill: (chartType === 'line') ? true : false, // 折线图下方面积填充
-                        tension: 0.1 // 使折线稍微平滑
+                        fill: isDailyStats,
+                        tension: 0.1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0
-                            }
-                        }
-                    }
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
                 }
             });
+
+            // --- 2. 仅在非按天统计时，才渲染饼图 ---
+            if (!isDailyStats) {
+                const pieChartCtx = document.getElementById('pieChart').getContext('2d');
+                new Chart(pieChartCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '故障占比',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)',
+                                'rgba(255, 206, 86, 0.7)', 'rgba(75, 192, 192, 0.7)',
+                                'rgba(153, 102, 255, 0.7)', 'rgba(255, 159, 64, 0.7)',
+                                'rgba(199, 199, 199, 0.7)', 'rgba(83, 102, 255, 0.7)',
+                                'rgba(40, 159, 64, 0.7)', 'rgba(210, 99, 132, 0.7)'
+                            ],
+                            borderColor: '#fff',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: '故障占比饼图' }
+                        }
+                    }
+                });
+            }
         {% endif %}
     </script>
 </body>
