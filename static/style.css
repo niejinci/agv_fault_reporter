@@ -87,6 +87,8 @@ th, td {
 thead th {
     background-color: #f2f2f2;       /* 给表头加上浅灰色背景 */
     font-weight: bold;
+    white-space: nowrap;             /* 新增：强制表头文字不换行 */
+    vertical-align: middle;          /* 新增：确保文字垂直居中对齐 */
 }
 
 tbody tr:nth-child(even) {
