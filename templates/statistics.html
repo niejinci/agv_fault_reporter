@@ -9,7 +9,7 @@
 <body>
     <h1>故障统计报告</h1>
 
-    <!-- 筛选表单 (无变化) -->
+    <!-- 筛选表单 (添加勾选项) -->
     <form action="{{ url_for('statistics') }}" method="get">
         <label>开始日期: <input type="date" name="start_date" value="{{ start_date or '' }}"></label>
         <label>结束日期: <input type="date" name="end_date" value="{{ end_date or '' }}"></label>
@@ -23,7 +23,14 @@
                 <option value="responsible_person" {% if current_group_by == 'responsible_person' %}selected{% endif %}>责任人</option>
             </select>
         </label>
-        <button type="submit">查询</button>
+
+        <!-- 新增：排除责任人是工厂的勾选项 -->
+        <label style="display: inline-block; margin-top: 10px;">
+            <input type="checkbox" name="exclude_factory" {% if exclude_factory %}checked{% endif %}>
+            排除责任人是"工厂"
+        </label>
+
+        <button type="submit" style="display: block; margin-top: 15px;">查询</button>
     </form>
 
     <!-- 下载按钮 (无变化) -->
@@ -31,7 +38,7 @@
         <a href="{{ url_for('download', start_date=start_date, end_date=end_date) }}">下载当前筛选范围的明细 (.csv)</a>
     </div>
 
-    <!-- 统计结果容器 -->
+    <!-- 统计结果容器 (无变化) -->
     {% if stats %}
         <h2>统计结果 (按 {% if current_group_by == 'by_date' %}【天】
                         {% elif current_group_by == 'category' %}【错误类别】
@@ -56,7 +63,7 @@
                 {% endif %}
             </div>
 
-            <!-- 2. 表格容器 -->
+            <!-- 2. 表格容器 (无变化) -->
             <div class="table-wrapper">
                 <table>
                     <thead>

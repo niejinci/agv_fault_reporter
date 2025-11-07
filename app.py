@@ -376,6 +376,8 @@ def statistics():
     db = get_db()
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
+    # 新增：获取勾选框状态
+    exclude_factory = request.args.get('exclude_factory')
 
     # 安全加固
     # 1. 定义一个允许用于分组的列名白名单
@@ -409,6 +411,11 @@ def statistics():
         query += " AND fault_time <= ?"
         params.append(end_date)
 
+    # 新增：如果勾选了，则添加排除条件
+    if exclude_factory:
+        query += " AND responsible_person NOT LIKE ?"
+        params.append('%工厂%')
+
     if group_by == 'by_date':
         query += f" GROUP BY group_key ORDER BY group_key ASC" # 按天统计时，按日期升序排列
     else:
@@ -437,6 +444,7 @@ def statistics():
         start_date=start_date_str,
         end_date=end_date_str,
         # 将图表数据传递给模板，并使用 tojson 过滤器确保安全
+        exclude_factory=exclude_factory,  # 新增：将状态传递回模板
         chart_labels=json.dumps(chart_labels),
         chart_data=json.dumps(chart_data)
     )
