@@ -8,19 +8,49 @@
 <body>
     <h1>编辑故障记录 #{{ fault.id }}</h1>
 
-    <!-- 显示只读信息 -->
-    <div class="readonly-info">
-        <p><strong>发现人员:</strong> {{ fault.reporter_name }}</p>
-        <p><strong>故障时间:</strong> {{ fault.fault_time }}</p>
-        <p><strong>车辆信息:</strong> {{ fault.vehicle_id }}</p>
-        <p><strong>错误类别:</strong> {{ fault.category }}</p>
-        <p><strong>报警描述:</strong> {{ fault.description }}</p>
-    </div>
+    <!-- Flash 消息显示（用于显示更新成功或失败的消息） -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+        {% for category, msg in messages %}
+            <div class="flash flash-{{ category }}">{{ msg }}</div>
+        {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
 
     <hr>
 
     <!-- 编辑表单 -->
     <form method="post">
+        <!-- 基础信息编辑 -->
+        <label>发现人员:
+            <input type="text" name="reporter_name" value="{{ fault.reporter_name }}" required>
+        </label>
+        <label>故障发生时间:
+            <!-- 注意：datetime-local 需要的格式是 YYYY-MM-DDTHH:MM -->
+            <input type="datetime-local" name="fault_time" value="{{ fault.fault_time.strftime('%Y-%m-%dT%H:%M') }}" required>
+        </label>
+        <label>车辆编号:
+            <input type="text" name="vehicle_id" value="{{ fault.vehicle_id }}" required>
+        </label>
+        <label>错误类别:
+            <select name="category" required>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if cat == fault.category %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>故障详细描述:
+            <textarea name="description" rows="6" required>{{ fault.description }}</textarea>
+        </label>
+        <label>责任人:
+            <input type="text" name="responsible_person" value="{{ fault.responsible_person }}" required>
+        </label>
+
+        <hr> <!-- 添加分隔线以区分基础信息和处理信息 -->
+
+        <!-- 状态与处理记录编辑 -->
         <label>解决状态:
             <select name="status">
                 {% for s in statuses %}
@@ -28,7 +58,6 @@
                 {% endfor %}
             </select>
         </label>
-
         <label>处理记录:
             <textarea name="resolution_log" rows="6">{{ fault.resolution_log or '' }}</textarea>
         </label>

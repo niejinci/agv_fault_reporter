@@ -304,22 +304,72 @@ def parse_fault():
 def edit_fault(fault_id):
     db = get_db()
     if request.method == 'POST':
-        status = request.form['status']
-        resolution_log = request.form['resolution_log']
-        update_query = f"UPDATE faults SET status = ?, resolution_log = ? WHERE id = ?"
-        params = (status, resolution_log, fault_id)
-        db.execute(update_query, params)
-        if app.config.get('DEBUG_SQL'):
-            print("\n--- DEBUG SQL (Edit Fault) ---")
-            print("Query:", update_query)
-            print("Params:", params)
-            print("---------------------------------\n")
-        db.commit()
-        flash('记录已更新！', 'success')
+        try:
+            # 获取所有可编辑字段
+            status = request.form['status']
+            resolution_log = request.form['resolution_log']
+            reporter_name = request.form['reporter_name']
+            fault_time_str = request.form['fault_time']
+            fault_time = datetime.strptime(fault_time_str, '%Y-%m-%dT%H:%M')
+            vehicle_id = request.form['vehicle_id']
+            category = request.form['category']
+            description = request.form['description']
+            responsible_person = request.form['responsible_person']
+
+            # 构建更新查询
+            update_query = """
+                UPDATE faults SET
+                    status = ?,
+                    resolution_log = ?,
+                    reporter_name = ?,
+                    fault_time = ?,
+                    vehicle_id = ?,
+                    category = ?,
+                    description = ?,
+                    responsible_person = ?
+                WHERE id = ?
+            """
+            params = (
+                status, resolution_log, reporter_name, fault_time, vehicle_id,
+                category, description, responsible_person, fault_id
+            )
+
+            if app.config.get('DEBUG_SQL'):
+                print("\n--- DEBUG SQL (Edit Fault) ---")
+                print("Query:", update_query)
+                print("Params:", params)
+                print("---------------------------------\n")
+
+            db.execute(update_query, params)
+            db.commit()
+            flash('记录已成功更新！', 'success')
+        except Exception as e:
+            flash(f'更新失败: {e}', 'error')
+            # 如果更新失败，也需要重新加载编辑页面，并显示错误
+            fault_from_db = db.execute('SELECT * FROM faults WHERE id = ?', (fault_id,)).fetchone()
+            if fault_from_db is None: return "Fault not found", 404
+            
+            # ** 错误修复 **
+            # 将 fault_from_db（一个 sqlite3.Row 对象）转换为可变字典
+            fault_dict = dict(fault_from_db)
+            # 手动将时间字符串转换为 datetime 对象
+            fault_dict['fault_time'] = datetime.strptime(fault_dict['fault_time'], '%Y-%m-%d %H:%M:%S')
+
+            return render_template('edit.html', fault=fault_dict, statuses=FAULT_STATUSES, categories=FAULT_CATEGORIES)
+
         return redirect(url_for('index'))
-    fault = db.execute('SELECT * FROM faults WHERE id = ?', (fault_id,)).fetchone()
-    if fault is None: return "Fault not found", 404
-    return render_template('edit.html', fault=fault, statuses=FAULT_STATUSES)
+
+    fault_from_db = db.execute('SELECT * FROM faults WHERE id = ?', (fault_id,)).fetchone()
+    if fault_from_db is None: return "Fault not found", 404
+    
+    # ** 错误修复 **
+    # 将 fault_from_db（一个 sqlite3.Row 对象）转换为可变字典
+    fault_dict = dict(fault_from_db)
+    # 手动将时间字符串转换为 datetime 对象，数据库默认存储格式为 '%Y-%m-%d %H:%M:%S'
+    fault_dict['fault_time'] = datetime.strptime(fault_dict['fault_time'], '%Y-%m-%d %H:%M:%S')
+
+    # 传递 categories 和 statuses 到模板
+    return render_template('edit.html', fault=fault_dict, statuses=FAULT_STATUSES, categories=FAULT_CATEGORIES)
 
 @app.route('/statistics')
 def statistics():
