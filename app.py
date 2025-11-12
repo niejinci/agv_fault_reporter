@@ -24,6 +24,7 @@ limiter = Limiter(
 # --- 全局常量定义 ---
 FAULT_CATEGORIES = ["充电失败", "任务执行失败", "避障异常", "定位丢失", "机械故障", "其他"]
 FAULT_STATUSES = ["未处理", "观察中", "已处理"]
+DEFAULT_STATUS = "未处理"
 
 # --- 数据库管理 (无变动) ---
 def get_db():
@@ -130,8 +131,8 @@ def index():
             responsible_person = request.form['responsible_person']
 
             db.execute(
-                'INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person)
+                'INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person, DEFAULT_STATUS)
             )
             db.commit()
             flash('故障已成功提交！', 'success')
@@ -272,7 +273,7 @@ def parse_fault():
 
     try:
         db = get_db()
-        insert_query = f"INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        insert_query = f"INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         params = (
             parsed_data['reporter_name'],
             parsed_data['fault_time'],
@@ -280,7 +281,8 @@ def parse_fault():
             parsed_data['category'],
             parsed_data['description'],
             parsed_data['solution'],
-            parsed_data['responsible_person']
+            parsed_data['responsible_person'],
+            DEFAULT_STATUS
         )
         if app.config.get('DEBUG_SQL'):
             print("\n--- DEBUG SQL (Insert Parsed Data) ---")
