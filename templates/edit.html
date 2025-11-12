@@ -36,8 +36,9 @@
         </label>
         <label>错误类别:
             <select name="category" required>
-                {% for cat in categories %}
-                <option value="{{ cat }}" {% if cat == fault.category %}selected{% endif %}>{{ cat }}</option>
+                <!-- 【核心修改】解包元组 (name, desc)，并用 name 进行比较 -->
+                {% for name, desc in categories %}
+                <option value="{{ name }}" {% if name == fault.category %}selected{% endif %}>{{ name }}</option>
                 {% endfor %}
             </select>
         </label>

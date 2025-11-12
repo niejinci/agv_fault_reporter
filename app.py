@@ -22,7 +22,17 @@ limiter = Limiter(
 )
 
 # --- 全局常量定义 ---
-FAULT_CATEGORIES = ["充电失败", "任务执行失败", "避障异常", "定位丢失", "机械故障", "其他"]
+# 【核心修改 1】将 FAULT_CATEGORIES 改造为元组列表
+FAULT_CATEGORIES = [
+    ("任务执行失败", "涵盖各类移动、举升、路径规划等任务层面的失败。"),
+    ("RCS/网络通信异常", "用于记录“RCS掉线”、“通讯中断”等网络问题。"),
+    ("定位/感知异常", "合并了“定位丢失”和“相机/扫码”问题，因为它们都属于AGV的感知系统。"),
+    ("硬件/驱动故障", "用于记录电机、传感器等物理部件的明确故障。"),
+    ("避障功能异常", "用于记录单纯的避障问题。"),
+    ("环境/人为因素", "区分是AGV的问题还是外部环境的问题（如料框乱放、人员干预）。"),
+    ("充电异常", "充电有关的异常。"),
+    ("其他", "用于无法归类的罕见问题。")
+]
 FAULT_STATUSES = ["未处理", "观察中", "已处理"]
 DEFAULT_STATUS = "未处理"
 
@@ -96,31 +106,33 @@ def parse_fault_text(raw_text):
                     fault_dt = None
     data['fault_time'] = fault_dt  # 可能为 None
 
-    # 3. 【核心修改】解析 "错误类别"
+    # 3. 【核心修改 2】根据新的 FAULT_CATEGORIES 结构调整解析逻辑
     category_from_user = matches.get('错误类别', '').strip()
 
-    # 创建一个类别名称到标准名称的映射 (用于处理同义词) 和编号映射
-    # key是用户可能输入的内容(小写)，value是标准类别
-    category_map = {cat.lower(): cat for cat in FAULT_CATEGORIES}
-    for i, cat in enumerate(FAULT_CATEGORIES):
-        category_map[str(i + 1)] = cat # 允许用户输入编号 1, 2, 3...
+    category_map = {}
+    for i, (name, desc) in enumerate(FAULT_CATEGORIES):
+        category_map[name.lower()] = name # 映射：小写全名 -> 标准名称
+        category_map[str(i + 1)] = name   # 映射：编号 -> 标准名称
 
     if category_from_user and category_from_user.lower() in category_map:
-        # 如果用户明确指定了类别 (通过名称或编号)，且有效，则使用它
         data['category'] = category_map[category_from_user.lower()]
     else:
-        # **回退逻辑**：如果用户未指定或指定无效，则根据描述猜测
-        desc = data['description']
-        if '充电' in desc:
-            data['category'] = '充电失败'
+        # **回退逻辑**：根据描述猜测
+        desc = data['description'].lower()
+        if 'rcs' in desc or '通讯' in desc:
+            data['category'] = 'RCS/网络通信异常'
+        elif '定位' in desc or '相机' in desc or 'qr' in desc or '扫码' in desc:
+            data['category'] = '定位/感知异常'
+        elif '电机' in desc or '驱动' in desc or '撞' in desc:
+            data['category'] = '硬件/驱动故障'
         elif '避障' in desc:
-            data['category'] = '避障异常'
-        elif '定位' in desc:
-            data['category'] = '定位丢失'
-        elif '任务' in desc or '路线' in desc or '锁死' in desc: # 增强规则
+            data['category'] = '避障功能异常'
+        elif '料框' in desc or '人为' in desc or '牵引车' in desc:
+            data['category'] = '环境/人为因素'
+        elif '充电' in desc:
+            data['category'] = '充电异常'
+        elif '任务' in desc or '路线' in desc or '锁死' in desc:
             data['category'] = '任务执行失败'
-        elif '机械' in desc:
-            data['category'] = '机械故障'
         else:
             data['category'] = '其他'
 

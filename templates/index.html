@@ -38,8 +38,8 @@
                 <label>错误类别:
                     <select name="category" required>
                         <option value="">请选择类别...</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% for name, desc in categories %}
+                        <option value="{{ name }}">{{ name }}</option>
                         {% endfor %}
                     </select>
                 </label>
@@ -63,11 +63,11 @@
             <form action="{{ url_for('parse_fault') }}" method="post">
                 <label>请在此处粘贴完整的故障信息:</label>
                 <div class="category-hint">
-                    <strong>可选的错误类别 (请在模板中新增一行 "错误类别: 编号"):</strong>
+                    <strong>可选的错误类别 (为确保分类准确，请添加 "错误类别: 编号"；否则将根据报警描述自动匹配)。</strong>
                     <ul>
                         <!-- 【核心修正】使用 loop.index 替换 enumerate 过滤器 -->
-                        {% for category in categories %}
-                            <li><strong>{{ loop.index }}:</strong> {{ category }}</li>
+                        {% for name, desc in categories %}
+                            <li><strong>{{ loop.index }}. {{ name }}:</strong> {{ desc }}</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -99,8 +99,8 @@
                 </select>
                 <select name="search_category">
                     <option value="">所有类别</option>
-                    {% for cat in categories %}
-                    <option value="{{ cat }}" {% if cat == search_params.search_category %}selected{% endif %}>{{ cat }}</option>
+                    {% for name, desc in categories %}
+                    <option value="{{ name }}" {% if name == search_params.search_category %}selected{% endif %}>{{ name }}</option>
                     {% endfor %}
                 </select>
                 <div class="date-range-group">
