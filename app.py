@@ -45,7 +45,7 @@ def parse_fault_text(raw_text):
     """从原始文本中解析故障信息字段"""
     data = {}
     # 使用正则表达式匹配键值对，注意处理冒号的全角和半角
-    pattern = re.compile(r'^(发现人员|时间|车辆信息|报警描述|解决办法|责任人)[:：]\s*(.*)', re.MULTILINE)
+    pattern = re.compile(r'^(发现人员|时间|车辆信息|报警描述|解决办法|责任人|错误类别)[:：]\s*(.*)', re.MULTILINE)
     matches = dict(pattern.findall(raw_text))
 
     # 1. 提取基本字段
@@ -96,18 +96,33 @@ def parse_fault_text(raw_text):
                     fault_dt = None
     data['fault_time'] = fault_dt  # 可能为 None
 
-    # 3. 根据描述生成错误类别
-    desc = data['description']
-    if '充电' in desc:
-        data['category'] = '充电失败'
-    elif '避障' in desc:
-        data['category'] = '避障异常'
-    elif '定位' in desc:
-        data['category'] = '定位丢失'
-    elif '任务' in desc:
-        data['category'] = '任务执行失败'
+    # 3. 【核心修改】解析 "错误类别"
+    category_from_user = matches.get('错误类别', '').strip()
+
+    # 创建一个类别名称到标准名称的映射 (用于处理同义词) 和编号映射
+    # key是用户可能输入的内容(小写)，value是标准类别
+    category_map = {cat.lower(): cat for cat in FAULT_CATEGORIES}
+    for i, cat in enumerate(FAULT_CATEGORIES):
+        category_map[str(i + 1)] = cat # 允许用户输入编号 1, 2, 3...
+
+    if category_from_user and category_from_user.lower() in category_map:
+        # 如果用户明确指定了类别 (通过名称或编号)，且有效，则使用它
+        data['category'] = category_map[category_from_user.lower()]
     else:
-        data['category'] = '其他'
+        # **回退逻辑**：如果用户未指定或指定无效，则根据描述猜测
+        desc = data['description']
+        if '充电' in desc:
+            data['category'] = '充电失败'
+        elif '避障' in desc:
+            data['category'] = '避障异常'
+        elif '定位' in desc:
+            data['category'] = '定位丢失'
+        elif '任务' in desc or '路线' in desc or '锁死' in desc: # 增强规则
+            data['category'] = '任务执行失败'
+        elif '机械' in desc:
+            data['category'] = '机械故障'
+        else:
+            data['category'] = '其他'
 
     return data
 

@@ -328,3 +328,22 @@ td.status-已修复 {
 .chart-container + .chart-container {
     margin-top: 40px;
 }
+
+/* --- 新增：快速上报的错误类别提示样式 --- */
+.category-hint {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    font-size: 0.9em;
+}
+
+.category-hint ul {
+    margin: 5px 0 0 20px;
+    padding: 0;
+}
+
+.category-hint li {
+    margin-bottom: 4px;
+}

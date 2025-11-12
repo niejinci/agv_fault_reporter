@@ -62,7 +62,16 @@
         <div id="quick" class="tab-content {% if active_tab == 'quick' %}active{% endif %}">
             <form action="{{ url_for('parse_fault') }}" method="post">
                 <label>请在此处粘贴完整的故障信息:</label>
-                <textarea name="raw_text" rows="10" required placeholder="例如：&#10;发现人员：曾海彬&#10;时间：2025年10月29日15:53&#10;车辆信息：6号车&#10;报警描述：5号车送后盖上料，举升后一直报避障，不走车&#10;解决办法：无&#10;责任人： @梁海聪"></textarea>
+                <div class="category-hint">
+                    <strong>可选的错误类别 (请在模板中新增一行 "错误类别: 编号"):</strong>
+                    <ul>
+                        <!-- 【核心修正】使用 loop.index 替换 enumerate 过滤器 -->
+                        {% for category in categories %}
+                            <li><strong>{{ loop.index }}:</strong> {{ category }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <textarea name="raw_text" rows="10" required placeholder="例如：&#10;发现人员：曾海彬&#10;时间：2025年10月29日15:53&#10;车辆信息：6号车&#10;错误类别：1&#10;报警描述：5号车送后盖上料，举升后一直报避障，不走车&#10;解决办法：无&#10;责任人： @梁海聪"></textarea>
                 <button type="submit">解析并提交</button>
             </form>
         </div>
