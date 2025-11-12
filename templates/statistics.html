@@ -5,6 +5,8 @@
     <title>故障统计报告</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 1. 引入 datalabels 插件 -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
     <h1>故障统计报告</h1>
@@ -117,9 +119,12 @@
     <hr>
     <a href="{{ url_for('index') }}">返回首页</a>
 
-    <!-- JavaScript 图表生成脚本 (无变化) -->
+    <!-- JavaScript 图表生成脚本 (已修改) -->
     <script>
         {% if stats %}
+            // 2. 全局注册插件
+            Chart.register(ChartDataLabels);
+
             const currentGroupBy = '{{ current_group_by }}';
             const isDailyStats = (currentGroupBy === 'by_date');
             const labels = {{ chart_labels | safe }};
@@ -144,7 +149,23 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                    // 3. 为条形图配置 datalabels
+                    plugins: {
+                        datalabels: {
+                            // 仅对条形图(bar)生效
+                            display: !isDailyStats,
+                            anchor: 'end',
+                            align: 'top',
+                            color: '#444',
+                            font: {
+                                weight: 'bold'
+                            },
+                            formatter: function(value, context) {
+                                return value; // 直接显示数字
+                            }
+                        }
+                    }
                 }
             });
 
@@ -174,7 +195,22 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: { position: 'top' },
-                            title: { display: true, text: '故障占比饼图' }
+                            title: { display: true, text: '故障占比饼图' },
+                            // 4. 为饼图配置 datalabels
+                            datalabels: {
+                                color: '#fff', // 白色字体，在深色背景上更清晰
+                                font: {
+                                    weight: 'bold'
+                                },
+                                // 核心：计算并格式化为百分比
+                                formatter: (value, ctx) => {
+                                    // 计算总和
+                                    const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    // 计算百分比
+                                    const percentage = (value * 100 / sum).toFixed(1) + '%';
+                                    return percentage;
+                                },
+                            }
                         }
                     }
                 });
