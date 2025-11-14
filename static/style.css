@@ -347,3 +347,107 @@ td.status-已修复 {
 .category-hint li {
     margin-bottom: 4px;
 }
+
+/* ================ 新增样式，请添加到 style.css 文件末尾 ================ */
+
+/* --- 1. 头部容器样式，用于布局标题和登录链接 --- */
+.header-container {
+    display: flex;              /* 开启 Flexbox 布局 */
+    justify-content: space-between; /* 子元素两端对齐 */
+    align-items: center;        /* 子元素垂直居中 */
+    margin-bottom: 20px;        /* 和下方内容拉开距离 */
+}
+.header-container h1 {
+    margin: 0; /* 移除 h1 的默认外边距 */
+}
+
+/* --- 2. 登录/登出链接区域样式 --- */
+.auth-links {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* 元素之间的间距 */
+}
+
+.welcome-message {
+    color: #555;
+    font-size: 0.9em;
+}
+
+.button-login, .button-logout {
+    padding: 6px 12px;
+    border: 1px solid;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap; /* 防止文字换行 */
+}
+.button-login:hover, .button-logout:hover {
+    text-decoration: none; /* 覆盖 a:hover 的下划线 */
+}
+
+.button-login {
+    border-color: #007bff;
+    background-color: #007bff;
+    color: white;
+}
+.button-login:hover {
+    background-color: #0056b3;
+}
+
+.button-logout {
+    border-color: #6c757d;
+    background-color: transparent;
+    color: #6c757d;
+}
+.button-logout:hover {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* ================ CSS 最终、正确的解决方案 ================ */
+
+/* ================ 最终、唯一需要的修复代码 ================ */
+
+/* 1. 设置操作单元格的对齐方式 */
+.actions-cell {
+    vertical-align: middle; /* 保证内容在单元格内垂直居中 */
+    white-space: nowrap;    /* 防止单元格内的内容换行 */
+}
+
+/* 2. 重置并设置删除表单的样式 */
+.delete-form {
+    display: inline-block;  /* 核心：让表单可以和旁边的链接并排 */
+    vertical-align: middle; /* 核心：让表单和链接在垂直方向上对齐 */
+    margin: 0 0 0 8px;      /* 只在左侧添加一点间距，与编辑按钮分开 */
+    padding: 0;             /* 移除继承自全局 form 的内边距 */
+    background: none;       /* 移除继承自全局 form 的背景 */
+    box-shadow: none;       /* 移除继承自全局 form 的阴影 */
+    border: none;           /* 移除可能的边框 */
+}
+
+/* 3. 统一设置操作按钮的样式 */
+.button-edit,
+.button-delete {
+    display: inline-block;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.button-edit {
+    background-color: #17a2b8; /* 青色 */
+}
+
+.button-delete {
+    background-color: #dc3545; /* 红色 */
+}
+
+/* 覆盖 a 标签的默认悬浮效果 */
+a.button-edit:hover {
+    text-decoration: none;
+    background-color: #138496;
+}

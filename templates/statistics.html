@@ -9,7 +9,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
-    <h1>故障统计报告</h1>
+    <!-- ==================== 新增：头部容器 ==================== -->
+    <div class="header-container">
+        <h1>故障统计报告</h1>
+        <!-- ==================== 新增：登录/登出链接区域 ==================== -->
+        <div class="auth-links">
+            {% if session.user == 'root' %}
+                <span class="welcome-message">欢迎, 管理员!</span>
+                <a href="{{ url_for('logout') }}" class="button-logout">登出</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="button-login">管理员登录</a>
+            {% endif %}
+        </div>
+    </div>
 
     <!-- 筛选表单 (添加勾选项) -->
     <form action="{{ url_for('statistics') }}" method="get">

@@ -1,9 +1,10 @@
 import sqlite3
 import csv
-from flask import Flask, render_template, request, redirect, url_for, g, Response, flash
+from flask import Flask, render_template, request, redirect, url_for, g, Response, flash, session
 from datetime import datetime
 import io
 import re # 导入正则表达式模块
+from functools import wraps # 导入 wraps 用于装饰器
 import json
 # 1. 导入 Limiter 相关的模块
 from flask_limiter import Limiter
@@ -52,6 +53,17 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
+
+# --- 新增：权限控制装饰器 ---
+def root_required(f):
+    """检查用户是否是以 'root' 身份登录的装饰器。"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('user') != 'root':
+            flash('此操作需要管理员权限，请先登录。', 'warning')
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # --- 核心解析与业务逻辑 ---
 def parse_fault_text(raw_text):
@@ -150,6 +162,34 @@ def parse_fault_text(raw_text):
     return data
 
 # --- 视图函数 ---
+
+# --- 新增：登录与登出路由 ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        # 硬编码的管理员凭证，请务必修改密码！
+        if username == 'root' and password == '123456':
+            session['user'] = 'root'
+            flash('登录成功！欢迎回来，管理员。', 'success')
+            next_url = request.args.get('next')
+            return redirect(next_url or url_for('index'))
+        else:
+            flash('用户名或密码错误。', 'error')
+
+    # 如果已登录，直接重定向到主页
+    if session.get('user') == 'root':
+        return redirect(url_for('index'))
+
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    flash('您已成功登出。', 'info')
+    return redirect(url_for('index'))
 
 @app.route('/', methods=['GET', 'POST'])
 # 3. 为提交操作应用特定的速率限制
@@ -275,6 +315,27 @@ def index():
         search_params=search_params # 将搜索参数传回，用于填充表单
     )
 
+# --- 新增：删除故障的路由 ---
+@app.route('/delete/<int:fault_id>', methods=['POST'])
+@root_required  # 应用权限装饰器
+@limiter.limit("20 per minute") # 对删除操作也进行速率限制
+def delete_fault(fault_id):
+    try:
+        db = get_db()
+        # 先检查记录是否存在
+        fault = db.execute('SELECT id FROM faults WHERE id = ?', (fault_id,)).fetchone()
+        if fault is None:
+            flash('删除失败：记录不存在或已被删除。', 'error')
+            return redirect(url_for('index'))
+
+        db.execute('DELETE FROM faults WHERE id = ?', (fault_id,))
+        db.commit()
+        flash(f'记录 ID:{fault_id} 已被成功删除。', 'success')
+    except Exception as e:
+        flash(f'删除记录时发生错误: {e}', 'error')
+
+    return redirect(url_for('index'))
+
 # 新增：“快速解析”的路由
 @app.route('/parse', methods=['POST'])
 @limiter.limit("10 per minute")
@@ -388,7 +449,7 @@ def edit_fault(fault_id):
             # 如果更新失败，也需要重新加载编辑页面，并显示错误
             fault_from_db = db.execute('SELECT * FROM faults WHERE id = ?', (fault_id,)).fetchone()
             if fault_from_db is None: return "Fault not found", 404
-            
+
             # ** 错误修复 **
             # 将 fault_from_db（一个 sqlite3.Row 对象）转换为可变字典
             fault_dict = dict(fault_from_db)
@@ -401,7 +462,7 @@ def edit_fault(fault_id):
 
     fault_from_db = db.execute('SELECT * FROM faults WHERE id = ?', (fault_id,)).fetchone()
     if fault_from_db is None: return "Fault not found", 404
-    
+
     # ** 错误修复 **
     # 将 fault_from_db（一个 sqlite3.Row 对象）转换为可变字典
     fault_dict = dict(fault_from_db)
