@@ -44,7 +44,11 @@
             排除责任人是"工厂"
         </label>
 
-        <button type="submit" style="display: block; margin-top: 15px;">查询</button>
+        <!-- ==================== 修改：操作按钮区域 ==================== -->
+        <div class="form-actions" style="margin-top: 20px;">
+            <button type="submit">查询</button>
+            <a href="{{ url_for('index') }}" class="button-clear">返回首页</a>
+        </div>
     </form>
 
     <!-- 下载按钮 (无变化) -->
@@ -129,7 +133,7 @@
     {% endif %}
 
     <hr>
-    <a href="{{ url_for('index') }}">返回首页</a>
+    <!-- <a href="{{ url_for('index') }}">返回首页</a> -->
 
     <!-- JavaScript 图表生成脚本 (已修改) -->
     <script>
