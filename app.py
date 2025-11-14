@@ -171,7 +171,7 @@ def login():
         password = request.form.get('password')
 
         # 硬编码的管理员凭证，请务必修改密码！
-        if username == 'root' and password == '123456':
+        if username == 'root' and password == 'agv@byd':
             session['user'] = 'root'
             flash('登录成功！欢迎回来，管理员。', 'success')
             next_url = request.args.get('next')
