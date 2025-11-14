@@ -24,13 +24,16 @@ limiter = Limiter(
 # --- 全局常量定义 ---
 # 【核心修改 1】将 FAULT_CATEGORIES 改造为元组列表
 FAULT_CATEGORIES = [
-    ("任务执行失败", "涵盖各类移动、举升、路径规划等任务层面的失败。"),
-    ("RCS/网络通信异常", "用于记录“RCS掉线”、“通讯中断”等网络问题。"),
-    ("定位/感知异常", "合并了“定位丢失”和“相机/扫码”问题，因为它们都属于AGV的感知系统。"),
-    ("硬件/驱动故障", "用于记录电机、传感器等物理部件的明确故障。"),
-    ("避障功能异常", "用于记录单纯的避障问题。"),
-    ("环境/人为因素", "区分是AGV的问题还是外部环境的问题（如料框乱放、人员干预）。"),
-    ("充电异常", "充电有关的异常。"),
+    ("决策异常", "无法切换模式，异常不停车，下发任务后车不动；责任人：奉涛。"),
+    ("RCS/网络通信异常", "用于记录“RCS掉线”、“通讯中断”等网络问题；责任人：沈松。"),
+    ("定位异常", "脱离路线，定位评分低，获取不到定位话题，获取雷达数据失败，雷达数据异常(掉点，时间戳不连续，点云缺失)；责任人：李聪平。"),
+    ("MCU异常", "无法正常控制下位机运动，无法正常获取里程计，电量等硬件信息；责任人：冯思远。"),
+    ("扫码数据异常", "无法正确获取扫码相机数据；责任人：冯思远。"),
+    ("避障异常", "前方无障碍但是报避障，撞车了，误报避障；责任人：刘贝。"),
+    ("环境/人为因素", "区分是AGV的问题还是外部环境的问题(如料框乱放、人员干预)；责任人：现场技术人员。"),
+    ("充电异常", "充电口对不准；责任人：李聪平。"),
+    ("充电避障", "充电避障，不充电；责任人：现场技术人员。"),
+    ("运控异常", "移动任务失败，托盘/货架旋转避障，顶升货架歪了，无避障；责任人：梁海聪。"),
     ("其他", "用于无法归类的罕见问题。")
 ]
 FAULT_STATUSES = ["未处理", "观察中", "已处理"]
@@ -117,22 +120,30 @@ def parse_fault_text(raw_text):
     if category_from_user and category_from_user.lower() in category_map:
         data['category'] = category_map[category_from_user.lower()]
     else:
-        # **回退逻辑**：根据描述猜测
+        # 【核心修改】更新回退逻辑以匹配新的分类
         desc = data['description'].lower()
-        if 'rcs' in desc or '通讯' in desc:
+
+        # 将判断逻辑按优先级从高到低排列
+        if '充电' in desc and '避障' in desc:
+            data['category'] = '充电避障'
+        elif 'rcs' in desc or '通讯' in desc:
             data['category'] = 'RCS/网络通信异常'
-        elif '定位' in desc or '相机' in desc or 'qr' in desc or '扫码' in desc:
-            data['category'] = '定位/感知异常'
-        elif '电机' in desc or '驱动' in desc or '撞' in desc:
-            data['category'] = '硬件/驱动故障'
-        elif '避障' in desc:
-            data['category'] = '避障功能异常'
-        elif '料框' in desc or '人为' in desc or '牵引车' in desc:
-            data['category'] = '环境/人为因素'
+        elif '扫码' in desc or '相机数据' in desc:
+            data['category'] = '扫码数据异常'
+        elif '定位' in desc or '雷达' in desc or '评分低' in desc or '脱离路线' in desc:
+            data['category'] = '定位异常'
+        elif 'mcu' in desc or '下位机' in desc or '里程计' in desc:
+            data['category'] = 'MCU异常'
+        elif '撞' in desc or ('避障' in desc and '无障碍' in desc): # "撞车了" 或 "前方无障碍但是报避障"
+            data['category'] = '避障异常'
         elif '充电' in desc:
             data['category'] = '充电异常'
-        elif '任务' in desc or '路线' in desc or '锁死' in desc:
-            data['category'] = '任务执行失败'
+        elif '任务' in desc or '托盘' in desc or '货架' in desc or '旋转' in desc or '顶升' in desc:
+            data['category'] = '运控异常'
+        elif '模式' in desc or '不动' in desc:
+            data['category'] = '决策异常'
+        elif '料框' in desc or '人为' in desc or '牵引车' in desc:
+            data['category'] = '环境/人为因素'
         else:
             data['category'] = '其他'
 
