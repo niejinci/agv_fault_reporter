@@ -501,26 +501,26 @@ def statistics():
         # 其他情况直接使用列名
         group_by_clause = group_by
 
-    # 4. 现在可以安全地在 f-string 中使用 group_by 变量
-    query = f"SELECT {group_by_clause} as group_key, COUNT(*) as count FROM faults WHERE 1=1"
+    # --- 查询逻辑的核心部分 (构建 WHERE 子句) ---
+    where_clauses = ["1=1"]
     params = []
     if start_date_str:
-        query += " AND fault_time >= ?"
+        where_clauses.append("fault_time >= ?")
         params.append(datetime.strptime(start_date_str, '%Y-%m-%d'))
     if end_date_str:
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
-        query += " AND fault_time <= ?"
+        where_clauses.append("fault_time <= ?")
         params.append(end_date)
-
-    # 新增：如果勾选了，则添加排除条件
     if exclude_factory:
-        query += " AND responsible_person NOT LIKE ?"
+        where_clauses.append("responsible_person NOT LIKE ?")
         params.append('%工厂%')
 
-    if group_by == 'by_date':
-        query += f" GROUP BY group_key ORDER BY group_key ASC" # 按天统计时，按日期升序排列
-    else:
-        query += f" GROUP BY {group_by} ORDER BY count DESC"    # 按数量降序排序
+    where_sql = " AND ".join(where_clauses)
+    # --- WHERE 子句构建完毕 ---
+
+    # 1. 执行主统计查询
+    order_by_sql = "group_key ASC" if group_by == 'by_date' else "count DESC"
+    query = f"SELECT {group_by_clause} as group_key, COUNT(*) as count FROM faults WHERE {where_sql} GROUP BY {group_by_clause} ORDER BY {order_by_sql}"
 
     if app.config.get('DEBUG_SQL'):
         print("\n--- DEBUG SQL (statistics) ---")
@@ -531,7 +531,29 @@ def statistics():
     cursor = db.execute(query, params)
     stats = cursor.fetchall()
 
-    # --- 关键修改：为图表准备数据 ---
+    # --- 【核心修改】 ---
+    # 2. 如果有统计结果，则查询实际的时间范围
+    effective_start_date = None
+    effective_end_date = None
+    if stats:
+        # 复用之前的 WHERE 条件和参数
+        date_range_query = f"SELECT MIN(fault_time), MAX(fault_time) FROM faults WHERE {where_sql}"
+
+        if app.config.get('DEBUG_SQL'):
+            print("\n--- DEBUG SQL (Date Range) ---")
+            print("Query:", date_range_query)
+            print("Params:", params)
+            print("---------------------------------\n")
+
+        min_max_row = db.execute(date_range_query, params).fetchone()
+
+        # 将数据库返回的日期时间字符串（例如 '2025-11-01 10:30:00'）格式化为 'YYYY-MM-DD'
+        if min_max_row[0]:
+            effective_start_date = datetime.strptime(min_max_row[0], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+        if min_max_row[1]:
+            effective_end_date = datetime.strptime(min_max_row[1], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+    # --- 修改结束 ---
+
     chart_labels = []
     chart_data = []
     if stats:
@@ -544,10 +566,12 @@ def statistics():
         current_group_by=group_by,
         start_date=start_date_str,
         end_date=end_date_str,
-        # 将图表数据传递给模板，并使用 tojson 过滤器确保安全
-        exclude_factory=exclude_factory,  # 新增：将状态传递回模板
+        exclude_factory=exclude_factory,
         chart_labels=json.dumps(chart_labels),
-        chart_data=json.dumps(chart_data)
+        chart_data=json.dumps(chart_data),
+        # 【核心修改】将新计算出的实际日期范围传递给模板
+        effective_start_date=effective_start_date,
+        effective_end_date=effective_end_date
     )
 
 @app.route('/download')

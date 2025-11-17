@@ -47,7 +47,7 @@
         <!-- ==================== 修改：操作按钮区域 ==================== -->
         <div class="form-actions" style="margin-top: 20px;">
             <button type="submit">查询</button>
-            <a href="{{ url_for('index') }}" class="button-clear">返回首页</a>
+            <a href="{{ url_for('index', search_start_date=start_date, search_end_date=end_date) }}" class="button-clear">返回首页</a>
         </div>
     </form>
 
@@ -64,7 +64,13 @@
                         {% elif current_group_by == 'vehicle_id' %}【车号】
                         {% elif current_group_by == 'reporter_name' %}【发现人员】
                         {% elif current_group_by == 'responsible_person' %}【责任人】
-                        {% else %}{{ current_group_by }}{% endif %} 分类)</h2>
+                        {% else %}{{ current_group_by }}{% endif %} 分类)，统计时间范围:
+                            {% if effective_start_date and effective_end_date %}
+                                {{ effective_start_date }} ~ {{ effective_end_date }}
+                            {% else %}
+                                全部时间
+                            {% endif %}
+        </h2>
 
         <div class="results-container">
             <!-- 1. 图表容器 (包含一个或两个图表) -->
