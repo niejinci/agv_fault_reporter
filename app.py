@@ -65,6 +65,30 @@ def root_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- 【新需求修改 1】新增一个辅助函数，专门用于标准化车辆编号 ---
+def normalize_vehicle_id(raw_vehicle_text):
+    """
+    从原始车辆信息文本中提取所有数字，并格式化为逗号分隔的字符串。
+    例如: "6和11 号车" -> "6,11"
+          "11，8，10，5号车" -> "5,8,10,11" (排序后)
+    """
+    if not raw_vehicle_text:
+        return "0"
+
+    # 使用正则表达式找到所有数字序列
+    # \d+ 表示匹配一个或多个数字
+    numbers = re.findall(r'\d+', str(raw_vehicle_text))
+
+    if not numbers:
+        return "0"
+
+    # 将找到的字符串数字转换为整数，然后排序
+    # 这样做可以确保 "11, 6" 和 "6, 11" 最终都变成 "6,11"，保证了数据的一致性
+    sorted_numbers = sorted([int(num) for num in numbers])
+
+    # 将排序后的数字列表转换回字符串，用逗号分隔
+    return ','.join(map(str, sorted_numbers))
+
 # --- 核心解析与业务逻辑 ---
 def parse_fault_text(raw_text):
     """从原始文本中解析故障信息字段"""
@@ -75,7 +99,9 @@ def parse_fault_text(raw_text):
 
     # 1. 提取基本字段
     data['reporter_name'] = matches.get('发现人员', '').strip()
-    data['vehicle_id'] = matches.get('车辆信息', '').strip()
+    # --- 【新需求修改 2】在解析时调用新的标准化函数 ---
+    raw_vehicle_info = matches.get('车辆信息', '').strip()
+    data['vehicle_id'] = normalize_vehicle_id(raw_vehicle_info) # <--- 修改点
     data['description'] = matches.get('报警描述', '').strip()
     data['solution'] = matches.get('解决办法', '').strip()
 
@@ -202,7 +228,9 @@ def index():
             reporter_name = request.form['reporter_name']
             fault_time_str = request.form['fault_time']
             fault_time = datetime.strptime(fault_time_str, '%Y-%m-%dT%H:%M')
-            vehicle_id = request.form['vehicle_id']
+            # --- 【新需求修改 3】处理“详细上报”表单中的车辆信息 ---
+            raw_vehicle_id = request.form['vehicle_id']
+            vehicle_id = normalize_vehicle_id(raw_vehicle_id) # <--- 修改点
             category = request.form['category']
             description = request.form['description']
             solution = request.form['solution']
@@ -412,7 +440,9 @@ def edit_fault(fault_id):
             reporter_name = request.form['reporter_name']
             fault_time_str = request.form['fault_time']
             fault_time = datetime.strptime(fault_time_str, '%Y-%m-%dT%H:%M')
-            vehicle_id = request.form['vehicle_id']
+            # --- 【新需求修改 4】处理编辑页面提交的车辆信息 ---
+            raw_vehicle_id = request.form['vehicle_id']
+            vehicle_id = normalize_vehicle_id(raw_vehicle_id) # <--- 修改点
             category = request.form['category']
             description = request.form['description']
             responsible_person = request.form['responsible_person']
