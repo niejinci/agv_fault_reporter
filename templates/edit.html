@@ -44,7 +44,11 @@
             <input type="datetime-local" name="fault_time" value="{{ fault.fault_time.strftime('%Y-%m-%dT%H:%M') }}" required>
         </label>
         <label>车辆编号:
-            <input type="text" name="vehicle_id" value="{{ fault.vehicle_id }}" required>
+            <!-- 【需求1 修改】添加 pattern 和 title 属性以进行前端输入验证 -->
+            <input type="text" name="vehicle_id" value="{{ fault.vehicle_id }}"
+                   pattern="^\d+(,\d+)*$"
+                   title="请输入一个或多个车辆编号，用逗号分隔，例如：6 或 6,11"
+                   required>
         </label>
         <label>错误类别:
             <select name="category" required>
