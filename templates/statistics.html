@@ -238,12 +238,13 @@
                             datasets: [{
                                 label: '次数',
                                 data: pieData, // 使用简化的数据
+                              // 【核心修改】应用组长指定的莫兰迪色系
                                 backgroundColor: [
-                                    'rgba(255, 99, 132, 0.7)', // 故障 - 红色
-                                    'rgba(46, 204, 113, 0.7)'  // 无故障 - 绿色
+                                    'rgba(204, 181, 165, 0.9)', // 故障 - 灰粉色 (来自图片)
+                                    'rgba(188, 204, 172, 0.9)'  // 无故障 - 灰绿色 (来自图片)
                                 ],
-                                borderColor: '#fff',
-                                borderWidth: 1
+                                borderColor: '#FFFFFF',
+                                borderWidth: 1.5
                             }]
                         },
                         options: {
@@ -253,7 +254,8 @@
                                 legend: { position: 'top' },
                                 title: { display: true, text: pieTitle },
                                 datalabels: {
-                                    color: '#fff',
+                                    // 在这种饱和度较低的颜色上，白色字体效果更好
+                                    color: '#FFFFFF',
                                     font: { weight: 'bold' },
                                     formatter: (value, ctx) => {
                                         // 分母是 totalRuns
