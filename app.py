@@ -507,6 +507,8 @@ def statistics():
     db = get_db()
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
+    # 【核心修改】获取 total_runs 参数
+    total_runs = request.args.get('total_runs', type=int)
     # 新增：获取勾选框状态
     exclude_factory = request.args.get('exclude_factory')
 
@@ -601,7 +603,9 @@ def statistics():
         chart_data=json.dumps(chart_data),
         # 【核心修改】将新计算出的实际日期范围传递给模板
         effective_start_date=effective_start_date,
-        effective_end_date=effective_end_date
+        effective_end_date=effective_end_date,
+        # 【核心修改】将 total_runs 传递给模板
+        total_runs=total_runs
     )
 
 @app.route('/download')
