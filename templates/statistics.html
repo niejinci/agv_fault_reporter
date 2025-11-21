@@ -27,12 +27,24 @@
     <form action="{{ url_for('statistics') }}" method="get">
         <label>开始日期: <input type="date" name="start_date" value="{{ start_date or '' }}"></label>
         <label>结束日期: <input type="date" name="end_date" value="{{ end_date or '' }}"></label>
+        <!-- 【核心修改】将输入框替换为下拉选择框 -->
+        <label>厂房筛选: 
+            <select name="filter_workshop_id">
+                <option value="">全部厂房</option>
+                {% for workshop in all_workshops %}
+                    <option value="{{ workshop.workshop_id }}" {% if workshop.workshop_id|string == filter_workshop_id %}selected{% endif %}>
+                        厂房 {{ workshop.workshop_id }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
         <label>统计维度:
             <select name="group_by">
                 <option value="by_date" {% if current_group_by == 'by_date' %}selected{% endif %}>按天统计</option>
                 <option value="category" {% if current_group_by == 'category' %}selected{% endif %}>错误类别</option>
                 <option value="status" {% if current_group_by == 'status' %}selected{% endif %}>解决状态</option>
                 <option value="vehicle_id" {% if current_group_by == 'vehicle_id' %}selected{% endif %}>车号</option>
+                <option value="workshop_id" {% if current_group_by == 'workshop_id' %}selected{% endif %}>厂房编号</option>
                 <option value="reporter_name" {% if current_group_by == 'reporter_name' %}selected{% endif %}>发现人员</option>
                 <option value="responsible_person" {% if current_group_by == 'responsible_person' %}selected{% endif %}>责任人</option>
             </select>
@@ -52,7 +64,7 @@
         <!-- ==================== 修改：操作按钮区域 ==================== -->
         <div class="form-actions" style="margin-top: 20px;">
             <button type="submit">查询</button>
-            <a href="{{ url_for('index', search_start_date=start_date, search_end_date=end_date) }}" class="button-clear">返回首页</a>
+            <a href="{{ url_for('index', search_start_date=start_date, search_end_date=end_date, search_workshop=filter_workshop_id) }}" class="button-clear">返回首页</a>
         </div>
     </form>
 
@@ -67,9 +79,15 @@
                         {% elif current_group_by == 'category' %}【错误类别】
                         {% elif current_group_by == 'status' %}【解决状态】
                         {% elif current_group_by == 'vehicle_id' %}【车号】
+                        {% elif current_group_by == 'workshop_id' %}【厂房编号】
                         {% elif current_group_by == 'reporter_name' %}【发现人员】
                         {% elif current_group_by == 'responsible_person' %}【责任人】
-                        {% else %}{{ current_group_by }}{% endif %} 分类)，统计时间范围:
+                        {% else %}{{ current_group_by }}{% endif %} 分类)，
+                        {% if filter_workshop_id %}
+                            仅限厂房 {{ filter_workshop_id }}，
+                        {% else %}
+                            所有厂房，
+                        {% endif %} 统计时间范围:
                             {% if effective_start_date and effective_end_date %}
                                 {{ effective_start_date }} ~ {{ effective_end_date }}
                             {% else %}
@@ -101,6 +119,7 @@
                                 {% elif current_group_by == 'category' %}错误类别
                                 {% elif current_group_by == 'status' %}解决状态
                                 {% elif current_group_by == 'vehicle_id' %}车号
+                                {% elif current_group_by == 'workshop_id' %}厂房编号
                                 {% elif current_group_by == 'reporter_name' %}发现人员
                                 {% elif current_group_by == 'responsible_person' %}责任人{% endif %}</th>
                             <th>故障次数</th>
@@ -114,7 +133,8 @@
                                 <!-- 钻取链接逻辑 (无变化) -->
                                 {% set drilldown_params = {
                                     'search_start_date': start_date,
-                                    'search_end_date': end_date
+                                    'search_end_date': end_date,
+                                    'search_workshop': filter_workshop_id
                                 } %}
                                 {% if current_group_by == 'by_date' %}
                                     {% set _ = drilldown_params.update({'search_start_date': row['group_key'], 'search_end_date': row['group_key']}) %}
@@ -124,6 +144,8 @@
                                     {% set _ = drilldown_params.update({'search_status': row['group_key']}) %}
                                 {% elif current_group_by == 'vehicle_id' %}
                                     {% set _ = drilldown_params.update({'search_vehicle': row['group_key']}) %}
+                                {% elif current_group_by == 'workshop_id' %}
+                                    {% set _ = drilldown_params.update({'search_workshop': row['group_key']}) %}
                                 {% elif current_group_by == 'reporter_name' %}
                                     {% set _ = drilldown_params.update({'search_reporter': row['group_key']}) %}
                                 {% elif current_group_by == 'responsible_person' %}

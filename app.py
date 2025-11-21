@@ -39,6 +39,7 @@ FAULT_CATEGORIES = [
 ]
 FAULT_STATUSES = ["未处理", "观察中", "已处理"]
 DEFAULT_STATUS = "未处理"
+DEFAULT_WORKSHOP_ID = 3 # 【新增】定义默认厂房编号
 
 # --- 数据库管理 (无变动) ---
 def get_db():
@@ -94,7 +95,7 @@ def parse_fault_text(raw_text):
     """从原始文本中解析故障信息字段"""
     data = {}
     # 使用正则表达式匹配键值对，注意处理冒号的全角和半角
-    pattern = re.compile(r'^(发现人员|时间|车辆信息|报警描述|解决办法|责任人|错误类别)[:：]\s*(.*)', re.MULTILINE)
+    pattern = re.compile(r'^(发现人员|时间|车辆信息|厂房编号|报警描述|解决办法|责任人|错误类别)[:：]\s*(.*)', re.MULTILINE)
     matches = dict(pattern.findall(raw_text))
 
     # 1. 提取基本字段
@@ -117,6 +118,17 @@ def parse_fault_text(raw_text):
     # 清洗后再去除可能存在的@前缀（虽然我们的正则已经很宽容了）
     data['responsible_person'] = responsible_person_cleaned.lstrip('@')
 
+    # 【核心修改 2】解析厂房编号
+    workshop_id_str = matches.get('厂房编号', '').strip()
+    try:
+        # 尝试从中提取第一个数字
+        found_digits = re.search(r'\d+', workshop_id_str)
+        if found_digits:
+            data['workshop_id'] = int(found_digits.group(0))
+        else:
+            data['workshop_id'] = DEFAULT_WORKSHOP_ID
+    except (ValueError, TypeError):
+        data['workshop_id'] = DEFAULT_WORKSHOP_ID
 
     # 2. 解析时间字段 (支持多种格式)
     time_str = matches.get('时间', '').strip()
@@ -231,14 +243,16 @@ def index():
             # --- 【新需求修改 3】处理“详细上报”表单中的车辆信息 ---
             raw_vehicle_id = request.form['vehicle_id']
             vehicle_id = normalize_vehicle_id(raw_vehicle_id) # <--- 修改点
+            workshop_id = request.form.get('workshop_id', DEFAULT_WORKSHOP_ID, type=int)
+            if not workshop_id: workshop_id = DEFAULT_WORKSHOP_ID # 再次确认，防止空字符串
             category = request.form['category']
             description = request.form['description']
             solution = request.form['solution']
             responsible_person = request.form['responsible_person']
 
             db.execute(
-                'INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person, DEFAULT_STATUS)
+                'INSERT INTO faults (reporter_name, fault_time, vehicle_id, workshop_id, category, description, solution, responsible_person, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (reporter_name, fault_time, vehicle_id, workshop_id, category, description, solution, responsible_person, DEFAULT_STATUS)
             )
             db.commit()
             flash('故障已成功提交！', 'success')
@@ -252,10 +266,11 @@ def index():
         'search_reporter': request.args.get('search_reporter', '').strip(),
         'search_responsible': request.args.get('search_responsible', '').strip(),
         'search_vehicle': request.args.get('search_vehicle', '').strip(),
+        'search_workshop': request.args.get('search_workshop', '').strip(), # 【核心修改 4】新增厂房搜索参数
         'search_status': request.args.get('search_status', '').strip(),
         'search_category': request.args.get('search_category', '').strip(), # 新增
         'search_start_date': request.args.get('search_start_date', '').strip(),
-        'search_end_date': request.args.get('search_end_date', '').strip()
+        'search_end_date': request.args.get('search_end_date', '').strip(),
     }
 
     where_clauses = ["1=1"]
@@ -270,6 +285,9 @@ def index():
     if search_params['search_vehicle']:
         where_clauses.append("vehicle_id LIKE ?")
         params.append(f"%{search_params['search_vehicle']}%")
+    if search_params['search_workshop']: # 【核心修改 5】增加厂房搜索条件
+        where_clauses.append("workshop_id = ?")
+        params.append(search_params['search_workshop'])
     if search_params['search_status']:
         where_clauses.append("status = ?")
         params.append(search_params['search_status'])
@@ -400,11 +418,12 @@ def parse_fault():
 
     try:
         db = get_db()
-        insert_query = f"INSERT INTO faults (reporter_name, fault_time, vehicle_id, category, description, solution, responsible_person, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        insert_query = f"INSERT INTO faults (reporter_name, fault_time, vehicle_id, workshop_id, category, description, solution, responsible_person, status) VALUES (?, ?, ?, ?, ?,?, ?, ?, ?)"
         params = (
             parsed_data['reporter_name'],
             parsed_data['fault_time'],
             parsed_data['vehicle_id'],
+            parsed_data['workshop_id'],
             parsed_data['category'],
             parsed_data['description'],
             parsed_data['solution'],
@@ -443,6 +462,8 @@ def edit_fault(fault_id):
             # --- 【新需求修改 4】处理编辑页面提交的车辆信息 ---
             raw_vehicle_id = request.form['vehicle_id']
             vehicle_id = normalize_vehicle_id(raw_vehicle_id) # <--- 修改点
+            workshop_id = request.form.get('workshop_id', DEFAULT_WORKSHOP_ID, type=int)
+            if not workshop_id: workshop_id = DEFAULT_WORKSHOP_ID # 再次确认，防止空字符串
             category = request.form['category']
             description = request.form['description']
             responsible_person = request.form['responsible_person']
@@ -455,13 +476,14 @@ def edit_fault(fault_id):
                     reporter_name = ?,
                     fault_time = ?,
                     vehicle_id = ?,
+                    workshop_id = ?,
                     category = ?,
                     description = ?,
                     responsible_person = ?
                 WHERE id = ?
             """
             params = (
-                status, resolution_log, reporter_name, fault_time, vehicle_id,
+                status, resolution_log, reporter_name, fault_time, vehicle_id,workshop_id,
                 category, description, responsible_person, fault_id
             )
 
@@ -505,16 +527,22 @@ def edit_fault(fault_id):
 @app.route('/statistics')
 def statistics():
     db = get_db()
+
+    # 【核心修改 1】查询所有唯一的厂房编号
+    all_workshops_cursor = db.execute("SELECT DISTINCT workshop_id FROM faults ORDER BY workshop_id ASC")
+    all_workshops = all_workshops_cursor.fetchall()
+
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
     # 【核心修改】获取 total_runs 参数
     total_runs = request.args.get('total_runs', type=int)
     # 新增：获取勾选框状态
     exclude_factory = request.args.get('exclude_factory')
+    filter_workshop_id = request.args.get('filter_workshop_id', '').strip()
 
     # 安全加固
     # 1. 定义一个允许用于分组的列名白名单
-    allowed_group_by_columns = ['category', 'status', 'vehicle_id', 'reporter_name', 'responsible_person', 'by_date']
+    allowed_group_by_columns = ['category', 'status', 'vehicle_id', 'workshop_id', 'reporter_name', 'responsible_person', 'by_date']
 
     # 2. 从请求中获取 group_by 参数，默认为 'category'
     group_by = request.args.get('group_by', 'category')
@@ -546,6 +574,9 @@ def statistics():
     if exclude_factory:
         where_clauses.append("responsible_person NOT LIKE ?")
         params.append('%工厂%')
+    if filter_workshop_id:
+        where_clauses.append("workshop_id = ?")
+        params.append(filter_workshop_id)
 
     where_sql = " AND ".join(where_clauses)
     # --- WHERE 子句构建完毕 ---
@@ -605,7 +636,10 @@ def statistics():
         effective_start_date=effective_start_date,
         effective_end_date=effective_end_date,
         # 【核心修改】将 total_runs 传递给模板
-        total_runs=total_runs
+        total_runs=total_runs,
+        filter_workshop_id=filter_workshop_id,
+        # 【核心修改 2】将厂房列表传递给模板
+        all_workshops=all_workshops
     )
 
 @app.route('/download')
@@ -614,7 +648,7 @@ def download():
     db = get_db()
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
-    query = "SELECT id, reporter_name, fault_time, vehicle_id, category, status, description, solution, resolution_log, responsible_person FROM faults WHERE 1=1"
+    query = "SELECT id, reporter_name, fault_time, vehicle_id, workshop_id, category, status, description, solution, resolution_log, responsible_person FROM faults WHERE 1=1"
     params = []
     if start_date_str:
         query += " AND fault_time >= ?"
@@ -632,7 +666,7 @@ def download():
     faults_to_download = db.execute(query, params).fetchall()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', '发现人员', '故障时间', '车辆信息', '错误类别', '解决状态', '报警描述', '解决办法', '处理记录', '责任人'])
+    writer.writerow(['ID', '发现人员', '故障时间', '车辆信息', '厂房编号', '错误类别', '解决状态', '报警描述', '解决办法', '处理记录', '责任人'])
     for row in faults_to_download: writer.writerow(row)
     csv_content = output.getvalue()
     encoded_content = csv_content.encode('utf-8-sig')

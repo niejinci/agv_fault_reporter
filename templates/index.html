@@ -47,6 +47,8 @@
                 <label>发现人员: <input type="text" name="reporter_name" required></label>
                 <label>故障时间: <input type="datetime-local" name="fault_time" required></label>
                 <label>车辆信息: <input type="text" name="vehicle_id" required></label>
+                <!-- 【核心修改 1】新增厂房编号输入框 -->
+                <label>厂房编号: <input type="number" name="workshop_id" placeholder="默认为 3 号厂房"></label>
                 <label>错误类别:
                     <select name="category" required>
                         <option value="">请选择类别...</option>
@@ -66,6 +68,7 @@
             发现人员：席佳伟
             时间：2025年10月30日16:39
             车辆信息:15号车
+            厂房编号：18
             报警描述：5号车送后盖上料，举升后一直报避障，不走车
             解决办法：无
             责任人： @梁海聪
@@ -83,7 +86,7 @@
                         {% endfor %}
                     </ul>
                 </div>
-                <textarea name="raw_text" rows="10" required placeholder="例如：&#10;发现人员：曾海彬&#10;时间：2025年10月29日15:53&#10;车辆信息：6号车&#10;错误类别：1&#10;报警描述：5号车送后盖上料，举升后一直报避障，不走车&#10;解决办法：无&#10;责任人： @梁海聪"></textarea>
+                <textarea name="raw_text" rows="10" required placeholder="例如：&#10;发现人员：曾海彬&#10;时间：2025年10月29日15:53&#10;车辆信息：6号车&#10;厂房编号：18&#10;错误类别：1&#10;报警描述：5号车送后盖上料，举升后一直报避障，不走车&#10;解决办法：无&#10;责任人： @梁海聪"></textarea>
                 <button type="submit">解析并提交</button>
             </form>
         </div>
@@ -103,6 +106,8 @@
                 <input type="text" name="search_reporter" placeholder="发现人员..." value="{{ search_params.search_reporter or '' }}">
                 <input type="text" name="search_responsible" placeholder="责任人..." value="{{ search_params.search_responsible or '' }}">
                 <input type="text" name="search_vehicle" placeholder="车辆编号..." value="{{ search_params.search_vehicle or '' }}">
+                <!-- 【核心修改 3】新增厂房编号搜索框 -->
+                <input type="number" name="search_workshop" placeholder="厂房编号..." value="{{ search_params.search_workshop or '' }}">
                 <select name="search_status">
                     <option value="">所有状态</option>
                     {% for status in statuses %}
@@ -149,6 +154,7 @@
                 <th>解决状态</th>
                 <th>故障时间</th>
                 <th>车辆编号</th>
+                <th>厂房编号</th>
                 <th>错误类别</th>
                 <th>报警描述</th>
                 <th>处理记录</th>
@@ -165,6 +171,7 @@
                 <td class="status-{{ fault.status }}">{{ fault.status }}</td>
                 <td>{{ fault.fault_time }}</td>
                 <td>{{ fault.vehicle_id }}</td>
+                <td>{{ fault.workshop_id }}</td>
                 <td>{{ fault.category }}</td>
                 <td class="preserve-whitespace">{{ fault.description }}</td>
                 <td class="preserve-whitespace">{{ fault.resolution_log or '无' }}</td>

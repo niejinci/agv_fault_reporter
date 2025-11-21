@@ -50,6 +50,10 @@
                    title="请输入一个或多个车辆编号，用逗号分隔，例如：6 或 6,11"
                    required>
         </label>
+        <!-- 【核心修改】新增厂房编号编辑框 -->
+        <label>厂房编号:
+            <input type="number" name="workshop_id" value="{{ fault.workshop_id or '3' }}" placeholder="默认为 3 号厂房">
+        </label>
         <label>错误类别:
             <select name="category" required>
                 <!-- 【核心修改】解包元组 (name, desc)，并用 name 进行比较 -->

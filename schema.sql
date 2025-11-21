@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS faults (
     reporter_name TEXT NOT NULL,                          -- 发现人员
     fault_time TIMESTAMP NOT NULL,                        -- 故障发生时间
     vehicle_id TEXT NOT NULL,                             -- 车辆编号
+    workshop_id INTEGER NOT NULL DEFAULT 3,               -- 【新增】厂房编号，默认为3
     category TEXT NOT NULL,                               -- 错误类别
     status TEXT NOT NULL DEFAULT '未处理',                 -- 解决状态 (未处理, 观察中, 已处理)
     description TEXT NOT NULL,                            -- 故障详细描述
