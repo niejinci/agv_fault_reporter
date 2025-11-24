@@ -1367,3 +1367,70 @@ id|reporter_name|fault_time|vehicle_id|category|status|description|solution|reso
 报警描述：后盖下料区，9号上空框，12号返满，相互路线干涉锁死，小车停止。
 解决办法:  抱闸移入库位，解锁路线。
 责任人： @niejinci
+
+# docker 化
+
+【背景】
+
+我需要把程序(agv_fault_reporter)部署到公司内网服务器，但是内网服务器不能连接互联网，因此内网服务器无法下载程序需要的依赖。
+
+【需求】
+
+把程序(agv_fault_reporter) 做成一个 docker。
+
+请你根据 *AGV故障填报和分析系统部署指南.md* 里面的安装依赖，输出制作docker的步骤。
+
+---
+
+指定了使用本地的 ubuntu22.04.tar 作为基础镜像，我们需要对步骤稍作调整。
+
+核心逻辑是： 在一台有互联网的电脑上，导入您的 Ubuntu 基础镜像，安装好所有依赖（Python, Flask, Gunicorn 等）并打包成最终的业务镜像，然后再拷贝到内网服务器运行。
+
+1. 加载基础镜像： 假设 ubuntu22.04.tar 就在当前目录。
+
+njc@LAPTOP-OOVIOO1M:~/mk_docker$ docker load -i ubuntu22.04.tar
+158ed41b34f5: Loading layer [==================================================>]  385.5MB/385.5MB
+Loaded image: ubuntu:22.04
+
+njc@LAPTOP-OOVIOO1M:~/mk_docker$ docker images
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+ubuntu       22.04     d4a30b1b5d9d   8 months ago   374MB
+
+2. 编写构建文件（在项目根目录）
+在 agv_fault_reporter 文件夹同级或内部，创建以下三个文件。
+
+python依赖
+requirements.txt
+
+启动脚本
+entrypoint.sh
+
+Dockerfile
+
+Installing collected packages: packaging, markupsafe, itsdangerous, click, blinker, werkzeug, jinja2, gunicorn, Flask
+Successfully installed Flask-3.1.2 blinker-1.9.0 click-8.3.1 gunicorn-23.0.0 itsdangerous-2.2.0 jinja2-3.1.6 markupsafe-3.0.3 packaging-25.0 werkzeug-3.1.3
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+ ---> Removed intermediate container 65257269845a
+ ---> cf8578af2b62
+Step 7/12 : COPY . .
+ ---> fdba4edc9b5a
+Step 8/12 : COPY entrypoint.sh /entrypoint.sh
+ ---> fd768cca0cbe
+Step 9/12 : RUN chmod +x /entrypoint.sh
+ ---> Running in eda342e36087
+ ---> Removed intermediate container eda342e36087
+ ---> 70b0502025e2
+Step 10/12 : EXPOSE 5000
+ ---> Running in 164ab5602f9c
+ ---> Removed intermediate container 164ab5602f9c
+ ---> 1e4dc5af6f4d
+Step 11/12 : VOLUME ["/data"]
+ ---> Running in 435e720ae5b9
+ ---> Removed intermediate container 435e720ae5b9
+ ---> 0a7454ee9027
+Step 12/12 : ENTRYPOINT ["/entrypoint.sh"]
+ ---> Running in 41c4bcb3f1b3
+ ---> Removed intermediate container 41c4bcb3f1b3
+ ---> d3045b97d840
+Successfully built d3045b97d840
+Successfully tagged agv-reporter:final

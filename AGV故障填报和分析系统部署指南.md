@@ -87,3 +87,57 @@ pkill gunicorn
 ```sh
 python app.py
 ```
+
+---
+
+# 使用容器
+
+因为服务器无法联网，因此无法下载程序需要的依赖。此时可以按照本章节的说明使用容器来部署程序。
+
+## 1. 上传镜像到服务器
+
+复制 agv-reporter-final.tar 到内网服务器。
+
+## 2.  加载镜像
+```sh
+docker load -i agv-reporter-final.tar
+```
+
+## 3.  启动容器（包含数据持久化）
+
+1. 在服务器上创建一个存放数据的目录
+```sh
+mkdir -p /var/lib/agv_reporter
+```
+
+2. 确定镜像名称
+例如，下面环境下镜像被加载的名称是: docker.io/library/agv-reporter:final
+```sh
+[root@iZwz94tcjhna03j7ppo2q6Z agv_fault_reporter]# docker images
+Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.
+REPOSITORY                      TAG         IMAGE ID      CREATED         SIZE
+docker.io/library/agv-reporter  final       db17b24bb68e  40 minutes ago  801 MB
+localhost/hello                 0.1         dd0b6ba27367  3 weeks ago     66 MB
+quay.io/podman/hello            latest      b1c06f48960c  21 months ago   1.7 MB
+docker.io/library/alpine        latest      05455a08881e  22 months ago   7.67 MB
+```
+
+3. 启动容器
+```sh
+    docker run -d \
+    --name agv-reporter \
+    --restart unless-stopped \
+    -p 5000:5000 \
+    -v /var/lib/agv_reporter:/data \
+    docker.io/library/agv-reporter:final
+    # 注意这里的镜像名称跟上一步被加载的名称要一样
+```
+
+## 4. 验证
+
+1. 在浏览器访问:
+    http://server_ip:5000
+    能成功访问说明服务运行正常。
+<br>
+2. 查看数据文件：
+    如果在宿主机的 `/var/lib/agv_reporter/` 下看到了 `faults.db`，说明部署成功且数据已持久化。
