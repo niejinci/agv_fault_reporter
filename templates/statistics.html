@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <title>故障统计报告</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 修改开始：替换 CDN 链接为本地静态文件引用 -->
+    <script src="{{ url_for('static', filename='chart.min.js') }}"></script>
     <!-- 1. 引入 datalabels 插件 -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="{{ url_for('static', filename='chartjs-plugin-datalabels.min.js') }}"></script>
+    <!-- 修改结束 -->
 </head>
 <body>
     <!-- ==================== 新增：头部容器 ==================== -->

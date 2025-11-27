@@ -124,7 +124,7 @@ docker.io/library/alpine        latest      05455a08881e  22 months ago   7.67 M
 
 3. 启动容器
 ```sh
-    docker run -d \
+docker run -d \
     --name agv-reporter \
     --restart unless-stopped \
     -p 5000:5000 \

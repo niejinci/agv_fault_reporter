@@ -1434,3 +1434,91 @@ Step 12/12 : ENTRYPOINT ["/entrypoint.sh"]
  ---> d3045b97d840
 Successfully built d3045b97d840
 Successfully tagged agv-reporter:final
+
+---
+
+项目目录结构如下：
+
+[root@iZwz94tcjhna03j7ppo2q6Z agv_fault_reporter]# tree .
+.
+├── app.py
+├── app.py.bak
+├── faults
+├── faults.db
+├── faults.db.bak
+├── migrate_vehicle_ids.py
+├── migration.sql
+├── normalize_vid.py
+├── __pycache__
+│   └── app.cpython-36.pyc
+├── schema.sql
+├── static
+│   └── style.css
+└── templates
+    ├── edit.html
+    ├── index.html
+    ├── index.html.bak
+    ├── login.html
+    └── statistics.html
+
+3 directories, 16 files
+
+
+【问题】
+服务部署在内网服务器上，无法连接外网，在【故障统计报告】页面，柱状图和饼图无法显示。
+
+是不是因为 statistics.html 里面引用的 js 插件无法访问？statistics.html 的代码如下：
+
+```sh
+从您的操作记录和截图来看，文件确实已经下载成功且位置正确。但截图中的图表区域仍然是一片空白（只有坐标轴区域或者一个红线箭头指向空白），这表明**前端加载逻辑**可能还存在问题。
+
+根据您提供的 `app.py` 运行日志和 `statistics.html` 的内容，我发现了一个关键细节：
+
+日志显示：
+```text
+223.104.68.108 - - [27/Nov/2025 18:13:08] "GET /static/chart.min.js HTTP/1.1" 200 -
+223.104.68.108 - - [27/Nov/2025 18:13:08] "GET /static/chartjs-plugin-datalabels.min.js HTTP/1.1" 200 -
+```
+这证明**浏览器已经成功加载了这两个 JS 文件**（状态码 200）。所以问题不在文件缺失，也不在下载错误。
+
+**真正的问题在于：JS 版本不兼容**。
+
+您在之前的 HTML 代码中，使用的是 `chart.js` **4.x** 或 **3.x** 的语法（例如 `const mainChartCtx = ... new Chart(...)`），并且引用了 `chartjs-plugin-datalabels`。
+
+但是，`chartjs-plugin-datalabels` 的 2.2.0 版本通常需要 Chart.js 的特定版本配合。更重要的是，如果您下载的是 **Chart.js 2.x** 的版本，而代码写的是 **Chart.js 3.x/4.x** 的语法，图表就会报错画不出来。
+
+反之亦然，如果您下载的是最新的 Chart.js (v4)，但 DataLabels 插件版本过旧或者不兼容 v4，也会报错。
+
+### 解决方案
+
+为了确保绝对的稳定性和兼容性，建议您**明确指定下载 3.x 版本的 Chart.js**（这是目前最稳定且与您的插件兼容性最好的组合）。
+
+请在服务器上执行以下命令，**强制替换**为兼容的版本：
+
+1.  **删除现有文件**：
+    ```bash
+    rm static/chart.min.js static/chartjs-plugin-datalabels.min.js
+    ```
+
+2.  **下载 Chart.js v3.9.1 (稳定版)**：
+    ```bash
+    wget -O static/chart.min.js https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js
+    ```
+
+3.  **下载对应的 DataLabels 插件 v2.2.0**：
+    ```bash
+    wget -O static/chartjs-plugin-datalabels.min.js https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js
+    ```
+
+**为什么这样做能解决？**
+*   您之前直接下载 `.../dist/chart.min.js`，这通常会指向**最新版 (v4.x)**。
+*   Chart.js v4.x 对插件注册的方式做了重大破坏性更新（Tree-shaking）。
+*   您的 HTML 代码中使用的 `Chart.register(ChartDataLabels);` 是 v3 的标准写法。如果下载了 v4，有时候需要不同的引入方式，或者插件版本跟不上，就会导致报错。
+*   **回退到 v3.9.1** 是最保险的办法，无需修改任何 HTML/JS 代码即可恢复显示。
+
+请尝试执行上述下载命令，然后强制刷新浏览器页面 (Ctrl+F5)。
+```
+
+commit
+    问题：服务部署在内网服务器上，无法连接外网，在【故障统计报告】页面，柱状图和饼图无法显示。
+    解决方法：将 JavaScript 文件下载到本地，并修改 HTML 模板以引用本地文件。
