@@ -177,11 +177,13 @@
                 <td class="preserve-whitespace">{{ fault.resolution_log or '无' }}</td>
                 <td>{{ fault.responsible_person }}</td>
                 <td>{{ fault.reporter_name }}</td>
-                <!-- ==================== 最终极简版操作列 ==================== -->
+                <!-- ==================== 核心修改：为编辑和删除按钮添加查询参数 ==================== -->
                 <td class="actions-cell">
-                    <a href="{{ url_for('edit_fault', fault_id=fault.id) }}" class="button-edit">编辑</a>
+                    <!-- 在 url_for 中，将 request.args 字典解包，附加到 URL 后面 -->
+                    <a href="{{ url_for('edit_fault', fault_id=fault.id, **request.args) }}" class="button-edit">编辑</a>
                     {%- if session.user == 'root' -%}
-                    <form method="POST" action="{{ url_for('delete_fault', fault_id=fault.id) }}" class="delete-form">
+                    <!-- 为了保持一致性，也为删除表单的 action URL 附加参数（虽然删除后总是重定向到首页） -->
+                    <form method="POST" action="{{ url_for('delete_fault', fault_id=fault.id, **request.args) }}" class="delete-form">
                         <button type="submit" class="button-delete" onclick="return confirm('警告：确定要永久删除这条 ID 为 {{ fault.id }} 的记录吗？')">删除</button>
                     </form>
                     {%- endif -%}

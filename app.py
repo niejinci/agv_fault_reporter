@@ -453,6 +453,12 @@ def parse_fault():
 @limiter.limit("10 per minute")
 def edit_fault(fault_id):
     db = get_db()
+
+    # ==================== 核心修改 1：捕获所有查询参数 ====================
+    # request.args 包含了 URL 中 ? 后面的所有参数 (例如, ?page=2&search_reporter=test)
+    # 我们将它转换成字典，以便后续传递
+    search_params_from_url = request.args.to_dict()
+
     if request.method == 'POST':
         try:
             # 获取所有可编辑字段
@@ -510,9 +516,11 @@ def edit_fault(fault_id):
             # 手动将时间字符串转换为 datetime 对象
             fault_dict['fault_time'] = datetime.strptime(fault_dict['fault_time'], '%Y-%m-%d %H:%M:%S')
 
-            return render_template('edit.html', fault=fault_dict, statuses=FAULT_STATUSES, categories=FAULT_CATEGORIES)
+            # ==================== 核心修改 3 (补充)：失败时也要将参数传回模板 ====================
+            return render_template('edit.html', fault=fault_dict, statuses=FAULT_STATUSES, categories=FAULT_CATEGORIES, search_params=search_params_from_url)
 
-        return redirect(url_for('index'))
+        # ==================== 核心修改 2：在重定向时，使用 ** 将参数字典解包并传递 ====================
+        return redirect(url_for('index', **search_params_from_url))
 
     fault_from_db = db.execute('SELECT * FROM faults WHERE id = ?', (fault_id,)).fetchone()
     if fault_from_db is None: return "Fault not found", 404
@@ -523,8 +531,9 @@ def edit_fault(fault_id):
     # 手动将时间字符串转换为 datetime 对象，数据库默认存储格式为 '%Y-%m-%d %H:%M:%S'
     fault_dict['fault_time'] = datetime.strptime(fault_dict['fault_time'], '%Y-%m-%d %H:%M:%S')
 
+    # ==================== 核心修改 3：将参数传递给模板，供其生成链接 ====================
     # 传递 categories 和 statuses 到模板
-    return render_template('edit.html', fault=fault_dict, statuses=FAULT_STATUSES, categories=FAULT_CATEGORIES)
+    return render_template('edit.html', fault=fault_dict, statuses=FAULT_STATUSES, categories=FAULT_CATEGORIES, search_params=search_params_from_url)
 
 @app.route('/statistics')
 def statistics():

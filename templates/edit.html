@@ -87,7 +87,9 @@
     </form>
 
     <div class="nav-links">
-        <a href="{{ url_for('index') }}">返回首页</a>
+        <!-- ==================== 核心修改：将 search_params 字典解包，附加到返回链接上 ==================== -->
+         <!-- 回到之前筛选好的列表状态 -->
+        <a href="{{ url_for('index', **search_params) }}">返回首页</a>
     </div>
 </body>
 </html>
