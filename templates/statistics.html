@@ -97,22 +97,14 @@
                             {% endif %}
         </h2>
 
+        <!-- ==================== 核心修改：移除 chart-wrapper，让图表和表格并列 ==================== -->
         <div class="results-container">
-            <!-- 1. 图表容器 (包含一个或两个图表) -->
-            <div class="chart-wrapper">
-                <!-- 条形图/折线图 -->
-                <div class="chart-container">
-                    <canvas id="mainChart"></canvas>
-                </div>
-                <!-- 饼图 (仅在非按天统计时显示) 且 提供了 total_runs 时才显示 -->
-                {% if current_group_by != 'by_date' and total_runs %}
-                <div class="chart-container">
-                    <canvas id="pieChart"></canvas>
-                </div>
-                {% endif %}
+            <!-- 1. 条形图/折线图容器 -->
+            <div class="chart-container" id="main-chart-container">
+                <canvas id="mainChart"></canvas>
             </div>
 
-            <!-- 2. 表格容器 (无变化) -->
+            <!-- 2. 表格容器 -->
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -162,6 +154,13 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- 3. 饼图容器 (仅在非按天统计且提供了 total_runs 时显示) -->
+            {% if current_group_by != 'by_date' and total_runs %}
+            <div class="chart-container" id="pie-chart-container">
+                <canvas id="pieChart"></canvas>
+            </div>
+            {% endif %}
         </div>
     {% else %}
     <p>在指定条件下没有找到记录。</p>

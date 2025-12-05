@@ -27,7 +27,7 @@ copilot gemini3.0 pro
 
 ### 步骤一：准备基础镜像（在有网的电脑上）
 
-/home/njc/mk_docker/agv_fault_reporter
+cd /home/njc/mk_docker/agv_fault_reporter
 
 1.  **加载基础镜像：**
     假设 `ubuntu22.04.tar` 就在当前目录。
