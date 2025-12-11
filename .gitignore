@@ -1,2 +1,3 @@
 capture/*
 faults.db
+__pycache__/

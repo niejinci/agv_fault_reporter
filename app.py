@@ -93,6 +93,34 @@ def normalize_vehicle_id(raw_vehicle_text):
     return ','.join(map(str, sorted_numbers))
 
 # --- 核心解析与业务逻辑 ---
+
+def filter_search_params(params_dict):
+    """
+    从查询参数字典中过滤出允许的搜索参数，防止URL注入攻击。
+    
+    Args:
+        params_dict: 包含所有查询参数的字典
+        
+    Returns:
+        只包含允许的搜索参数的字典
+    """
+    # 定义允许的搜索和分页参数白名单
+    allowed_params = [
+        'search_reporter',
+        'search_responsible',
+        'search_vehicle',
+        'search_workshop',
+        'search_status',
+        'search_category',
+        'search_start_date',
+        'search_end_date',
+        'page',
+        'per_page'
+    ]
+    
+    # 只保留白名单中的参数
+    return {k: v for k, v in params_dict.items() if k in allowed_params}
+
 def parse_fault_text(raw_text):
     """从原始文本中解析故障信息字段"""
     data = {}
@@ -368,10 +396,10 @@ def index():
 @root_required  # 应用权限装饰器
 @limiter.limit("20 per minute") # 对删除操作也进行速率限制
 def delete_fault(fault_id):
-    # ==================== 核心修改：捕获所有查询参数 ====================
+    # ==================== 核心修改：捕获并过滤查询参数 ====================
     # request.args 包含了 URL 中 ? 后面的所有参数 (例如, ?page=2&search_reporter=test)
-    # 我们将它转换成字典，以便后续传递
-    search_params_from_url = request.args.to_dict()
+    # 使用 filter_search_params 过滤，只保留允许的搜索和分页参数
+    search_params_from_url = filter_search_params(request.args.to_dict())
     
     try:
         db = get_db()
@@ -461,10 +489,10 @@ def parse_fault():
 def edit_fault(fault_id):
     db = get_db()
 
-    # ==================== 核心修改 1：捕获所有查询参数 ====================
+    # ==================== 核心修改 1：捕获并过滤查询参数 ====================
     # request.args 包含了 URL 中 ? 后面的所有参数 (例如, ?page=2&search_reporter=test)
-    # 我们将它转换成字典，以便后续传递
-    search_params_from_url = request.args.to_dict()
+    # 使用 filter_search_params 过滤，只保留允许的搜索和分页参数
+    search_params_from_url = filter_search_params(request.args.to_dict())
 
     if request.method == 'POST':
         try:
