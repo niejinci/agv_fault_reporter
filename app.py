@@ -17,8 +17,8 @@ DATABASE = 'faults.db'
 
 # 2. 初始化 Limiter
 limiter = Limiter(
-    app,
-    key_func=get_remote_address,  # 使用 IP 地址作为识别用户的依据
+    get_remote_address,  # 使用 IP 地址作为识别用户的依据
+    app=app,
     default_limits=["200 per day", "50 per hour"] # 为所有路由设置一个默认的全局限制
 )
 
@@ -368,13 +368,19 @@ def index():
 @root_required  # 应用权限装饰器
 @limiter.limit("20 per minute") # 对删除操作也进行速率限制
 def delete_fault(fault_id):
+    # ==================== 核心修改：捕获所有查询参数 ====================
+    # request.args 包含了 URL 中 ? 后面的所有参数 (例如, ?page=2&search_reporter=test)
+    # 我们将它转换成字典，以便后续传递
+    search_params_from_url = request.args.to_dict()
+    
     try:
         db = get_db()
         # 先检查记录是否存在
         fault = db.execute('SELECT id FROM faults WHERE id = ?', (fault_id,)).fetchone()
         if fault is None:
             flash('删除失败：记录不存在或已被删除。', 'error')
-            return redirect(url_for('index'))
+            # ==================== 核心修改：在重定向时，使用 ** 将参数字典解包并传递 ====================
+            return redirect(url_for('index', **search_params_from_url))
 
         db.execute('DELETE FROM faults WHERE id = ?', (fault_id,))
         db.commit()
@@ -382,7 +388,8 @@ def delete_fault(fault_id):
     except Exception as e:
         flash(f'删除记录时发生错误: {e}', 'error')
 
-    return redirect(url_for('index'))
+    # ==================== 核心修改：在重定向时，使用 ** 将参数字典解包并传递 ====================
+    return redirect(url_for('index', **search_params_from_url))
 
 # 新增：“快速解析”的路由
 @app.route('/parse', methods=['POST'])
