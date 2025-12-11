@@ -374,7 +374,8 @@ def delete_fault(fault_id):
         fault = db.execute('SELECT id FROM faults WHERE id = ?', (fault_id,)).fetchone()
         if fault is None:
             flash('删除失败：记录不存在或已被删除。', 'error')
-            return redirect(url_for('index'))
+            # 如果记录不存在，重定向时也应保留查询参数
+            return redirect(url_for('index', **request.args))
 
         db.execute('DELETE FROM faults WHERE id = ?', (fault_id,))
         db.commit()
@@ -382,7 +383,10 @@ def delete_fault(fault_id):
     except Exception as e:
         flash(f'删除记录时发生错误: {e}', 'error')
 
-    return redirect(url_for('index'))
+    # 在重定向回 index 页面时，将所有原始的查询参数 (request.args) 重新附加回去。
+    # 例如，如果删除请求的 URL 是 /delete/123?search_reporter=张三&page=2，
+    # 那么这里会生成一个到 /?search_reporter=张三&page=2 的重定向。
+    return redirect(url_for('index', **request.args))
 
 # 新增：“快速解析”的路由
 @app.route('/parse', methods=['POST'])
