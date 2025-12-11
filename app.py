@@ -17,7 +17,7 @@ DATABASE = 'faults.db'
 
 # 2. 初始化 Limiter
 limiter = Limiter(
-    get_remote_address,  # 使用 IP 地址作为识别用户的依据
+    key_func=get_remote_address,  # 使用 IP 地址作为识别用户的依据
     app=app,
     default_limits=["200 per day", "50 per hour"] # 为所有路由设置一个默认的全局限制
 )
@@ -99,13 +99,13 @@ def filter_search_params(params_dict):
     从查询参数字典中过滤出允许的搜索参数，防止URL注入攻击。
     
     Args:
-        params_dict: 包含所有查询参数的字典
+        params_dict (dict): 包含所有查询参数的字典
         
     Returns:
-        只包含允许的搜索参数的字典
+        dict: 只包含允许的搜索参数的字典
     """
-    # 定义允许的搜索和分页参数白名单
-    allowed_params = [
+    # 定义允许的搜索和分页参数白名单（使用集合以提高查找性能）
+    allowed_params = {
         'search_reporter',
         'search_responsible',
         'search_vehicle',
@@ -116,7 +116,7 @@ def filter_search_params(params_dict):
         'search_end_date',
         'page',
         'per_page'
-    ]
+    }
     
     # 只保留白名单中的参数
     return {k: v for k, v in params_dict.items() if k in allowed_params}
