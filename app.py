@@ -543,17 +543,25 @@ def edit_fault(fault_id):
 def statistics():
     db = get_db()
 
-    # 【核心修改 1】查询所有唯一的厂房编号
+    # --- 1. 获取所有唯一的厂房编号，用于下拉列表 ---
     all_workshops_cursor = db.execute("SELECT DISTINCT workshop_id FROM faults ORDER BY workshop_id ASC")
     all_workshops = all_workshops_cursor.fetchall()
 
-    start_date_str = request.args.get('start_date')
-    end_date_str = request.args.get('end_date')
+    # --- 2. 需求 #2：从首页的 URL 参数中预填筛选条件 ---
+    #    - `search_start_date` 对应 `start_date`
+    #    - `search_end_date` 对应 `end_date`
+    #    - `search_workshop` 对应 `filter_workshop_id`
+    start_date_str = request.args.get('start_date') or request.args.get('search_start_date')
+    end_date_str = request.args.get('end_date') or request.args.get('search_end_date')
+    filter_workshop_id = request.args.get('filter_workshop_id') or request.args.get('search_workshop', '')
+
+    # --- 3. 需求 #1：获取并保存所有从首页带来的原始查询参数 ---
+    #    这些参数将用于生成“返回首页”的链接，确保可以回到之前的状态
+    incoming_params = request.args.to_dict()
     # 【核心修改】获取 total_runs 参数
     total_runs = request.args.get('total_runs', type=int)
     # 新增：获取勾选框状态
     exclude_factory = request.args.get('exclude_factory')
-    filter_workshop_id = request.args.get('filter_workshop_id', '').strip()
 
     # 安全加固
     # 1. 定义一个允许用于分组的列名白名单
@@ -642,8 +650,8 @@ def statistics():
         'statistics.html',
         stats=stats,
         current_group_by=group_by,
-        start_date=start_date_str,
-        end_date=end_date_str,
+        start_date=start_date_str or '',
+        end_date=end_date_str or '',
         exclude_factory=exclude_factory,
         chart_labels=json.dumps(chart_labels),
         chart_data=json.dumps(chart_data),
@@ -654,7 +662,9 @@ def statistics():
         total_runs=total_runs,
         filter_workshop_id=filter_workshop_id,
         # 【核心修改 2】将厂房列表传递给模板
-        all_workshops=all_workshops
+        all_workshops=all_workshops,
+        # --- 4. 需求 #1：将从首页带来的所有参数传给模板 ---
+        incoming_params=incoming_params
     )
 
 @app.route('/download')

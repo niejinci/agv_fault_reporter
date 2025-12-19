@@ -63,10 +63,19 @@
             排除责任人是"工厂"
         </label>
 
+        <!-- ==================== 需求 #1 修改点 ==================== -->
+        <!-- 将所有从首页带来的参数也包含在表单中，以便提交时保留 -->
+        {% for key, value in incoming_params.items() %}
+            {% if key not in ['start_date', 'end_date', 'filter_workshop_id', 'group_by', 'total_runs', 'exclude_factory'] %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+
         <!-- ==================== 修改：操作按钮区域 ==================== -->
         <div class="form-actions" style="margin-top: 20px;">
             <button type="submit">查询</button>
-            <a href="{{ url_for('index', search_start_date=start_date, search_end_date=end_date, search_workshop=filter_workshop_id) }}" class="button-clear">返回首页</a>
+            <!-- 修改“返回首页”按钮，使用 incoming_params 来构建返回链接 -->
+            <a href="{{ url_for('index', **incoming_params) }}" class="button-secondary">返回首页</a>
         </div>
     </form>
 

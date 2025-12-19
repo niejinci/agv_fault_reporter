@@ -93,8 +93,10 @@
     </div>
 
     <hr>
+    <!-- ==================== 需求 #2 修改点 ==================== -->
+    <!-- 修改此处的链接，将所有 search_params 传递给 statistics 页面 -->
     <div class="nav-links">
-        <a href="{{ url_for('statistics') }}">查看统计报告</a>
+        <a href="{{ url_for('statistics', **search_params) }}">查看统计报告</a>
     </div>
 
     <!-- 关键修改1：添加搜索/筛选表单 -->
