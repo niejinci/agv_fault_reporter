@@ -619,9 +619,12 @@ def statistics():
 
     # --- 【核心修改】 ---
     # 2. 如果有统计结果，则查询实际的时间范围
-    effective_start_date = None
-    effective_end_date = None
-    if stats:
+    #    优先使用用户输入的筛选条件；如果未输入，则查询数据库中的实际数据范围
+    effective_start_date = start_date_str
+    effective_end_date = end_date_str
+
+    # 如果用户没有指定开始或结束日期，并且有统计结果，则从数据库中查询实际的最早/最晚时间作为补充
+    if stats and (not effective_start_date or not effective_end_date):
         # 复用之前的 WHERE 条件和参数
         date_range_query = f"SELECT MIN(fault_time), MAX(fault_time) FROM faults WHERE {where_sql}"
 
@@ -633,10 +636,11 @@ def statistics():
 
         min_max_row = db.execute(date_range_query, params).fetchone()
 
+        # 仅当用户未指定时，才使用数据库查询结果
         # 将数据库返回的日期时间字符串（例如 '2025-11-01 10:30:00'）格式化为 'YYYY-MM-DD'
-        if min_max_row[0]:
+        if not effective_start_date and min_max_row[0]:
             effective_start_date = datetime.strptime(min_max_row[0], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
-        if min_max_row[1]:
+        if not effective_end_date and min_max_row[1]:
             effective_end_date = datetime.strptime(min_max_row[1], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
     # --- 修改结束 ---
 
